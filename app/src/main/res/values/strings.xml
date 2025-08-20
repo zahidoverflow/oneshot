@@ -1,3 +1,14 @@
 <resources>
-    <string name="app_name">Oneshot</string>
+    <string name="app_name">◉ ONESHOT ◉</string>
+    <string name="app_subtitle">WiFi WPS Penetration Suite</string>
+    <string name="scan_networks">⚡ SCAN NETWORKS ⚡</string>
+    <string name="advanced_options">⚙ ADVANCED OPTIONS ⚙</string>
+    <string name="attack_vulnerable">⚔ ATTACK VULNERABLE NETWORKS ⚔</string>
+    <string name="scanning">SCANNING NETWORKS...</string>
+    <string name="vulnerable">VULNERABLE</string>
+    <string name="secure">SECURE</string>
+    <string name="password_found">PASSWORD FOUND</string>
+    <string name="attack_failed">ATTACK FAILED</string>
+    <string name="root_required">ROOT ACCESS REQUIRED</string>
+    <string name="unauthorized_warning">» AUTHORIZED TESTING ONLY «</string>
 </resources>

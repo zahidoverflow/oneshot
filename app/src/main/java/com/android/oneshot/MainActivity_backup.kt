@@ -1,503 +1,63 @@
 package com.android.oneshot
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.android.oneshot.ui.theme.OneshotTheme
+import androidx.compose.ui.unit.sp
+import com.android.oneshot.ui.theme.*
+import kotlinx.coroutines.delay
+import java.io.BufferedReader
+import java.io.File
+import java.io.InputStreamReader
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            OneshotTheme { 
-                HackerApp() 
-            }
-        }
-    }
-}
-
-@Composable
-fun HackerApp() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "◉ ONESHOT ◉",
-            style = MaterialTheme.typography.headlineLarge,
-            color = Color.Green,
-            textAlign = TextAlign.Center
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Text(
-            text = "WiFi WPS Penetration Suite",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        Button(
-            onClick = { /* TODO: Implement scanning */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp)
-        ) {
-            Text("⚡ SCAN NETWORKS ⚡")
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Button(
-            onClick = { /* TODO: Implement advanced options */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-        ) {
-            Text("⚙ ADVANCED OPTIONS ⚙")
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HackerAppPreview() { 
-    OneshotTheme { 
-        HackerApp() 
-    } 
-}
-
-@Composable
-fun WifiPentesterApp() {
-    var currentScreen by remember { mutableStateOf(Screen.MAIN) }
-    var networks by remember { mutableStateOf<List<WiFiNetwork>>(emptyList()) }
-    var isScanning by remember { mutableStateOf(false) }
-    var attackResults by remember { mutableStateOf<List<WiFiNetwork>>(emptyList()) }
-    val context = LocalContext.current
-    
-    // Permission launcher
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val allGranted = permissions.values.all { it }
-        if (!allGranted) {
-            // Show permission denied message
-        }
-    }
-    
-    LaunchedEffect(Unit) {
-        // Request necessary permissions
-        permissionLauncher.launch(arrayOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_WIFI_STATE,
-            Manifest.permission.CHANGE_WIFI_STATE
-        ))
-    }
-    
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(HackerBlack, TerminalBlack)
-                )
-            )
-            .padding(16.dp)
-    ) {
-        // Header
-        HackerHeader()
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        when (currentScreen) {
-            Screen.MAIN -> {
-                MainScreen(
-                    onScanClick = { 
-                        currentScreen = Screen.SCANNER
-                        isScanning = true
-                    },
-                    onAdvancedClick = { currentScreen = Screen.ADVANCED },
-                    onResultsClick = { currentScreen = Screen.RESULTS }
-                )
-            }
-            Screen.SCANNER -> {
-                ScannerScreen(
-                    networks = networks,
-                    isScanning = isScanning,
-                    context = context,
-                    onScanComplete = { scannedNetworks ->
-                        networks = scannedNetworks
-                        isScanning = false
-                    },
-                    onAttackClick = { vulnerableNetworks ->
-                        // Start attack on vulnerable networks
-                        startAttack(context, vulnerableNetworks) { results ->
-                            attackResults = results
-                            currentScreen = Screen.RESULTS
-                        }
-                    },
-                    onBackClick = { currentScreen = Screen.MAIN }
-                )
-            }
-            Screen.ADVANCED -> {
-                AdvancedScreen(onBackClick = { currentScreen = Screen.MAIN })
-            }
-            Screen.RESULTS -> {
-                ResultsScreen(
-                    results = attackResults,
-                    onBackClick = { currentScreen = Screen.MAIN }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun HackerHeader() {
-    val infiniteTransition = rememberInfiniteTransition(label = "")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.6f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ), label = ""
-    )
-    
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = "◉ ONESHOT ◉",
-            style = MaterialTheme.typography.headlineLarge,
-            color = NeonGreen,
-            modifier = Modifier.alpha(alpha),
-            textAlign = TextAlign.Center
-        )
-        
-        Text(
-            text = "WiFi WPS Penetration Suite",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MatrixGreen,
-            textAlign = TextAlign.Center
-        )
-        
-        Text(
-            text = "» AUTHORIZED TESTING ONLY «",
-            style = MaterialTheme.typography.labelSmall,
-            color = ErrorRed,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-    }
-}
-
-@Composable
-fun MainScreen(
-    onScanClick: () -> Unit,
-    onAdvancedClick: () -> Unit,
-    onResultsClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // Main scan button
-        HackerButton(
-            text = "⚡ SCAN NETWORKS ⚡",
-            onClick = onScanClick,
-            color = NeonGreen,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp)
-        )
-        
-        // Advanced options button
-        HackerButton(
-            text = "⚙ ADVANCED OPTIONS ⚙",
-            onClick = onAdvancedClick,
-            color = NeonBlue,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-        )
-        
-        // Results button
-        HackerButton(
-            text = "📊 VIEW RESULTS 📊",
-            onClick = onResultsClick,
-            color = NeonOrange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // Status card
-        StatusCard()
-    }
-}
-
-@Composable
-fun StatusCard() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .border(1.dp, MatrixGreen, RoundedCornerShape(12.dp)),
-        colors = CardDefaults.cardColors(containerColor = CardDark)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = Icons.Default.Shield,
-                contentDescription = null,
-                tint = NeonOrange,
-                modifier = Modifier.size(32.dp)
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = "SYSTEM STATUS",
-                style = MaterialTheme.typography.titleMedium,
-                color = HackerGreen
-            )
-            
-            Text(
-                text = "Root access recommended for full functionality",
-                style = MaterialTheme.typography.bodySmall,
-                color = ConsoleGray,
-                textAlign = TextAlign.Center
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = "Ready for WiFi penetration testing",
-                style = MaterialTheme.typography.labelSmall,
-                color = NeonGreen,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-@Composable
-fun ScannerScreen(
-    networks: List<WiFiNetwork>,
-    isScanning: Boolean,
-    context: Context,
-    onScanComplete: (List<WiFiNetwork>) -> Unit,
-    onAttackClick: (List<WiFiNetwork>) -> Unit,
-    onBackClick: () -> Unit
-) {
-    // Simulate network scanning
-    LaunchedEffect(isScanning) {
-        if (isScanning) {
-            delay(3000) // Simulate scan time
-            onScanComplete(scanWifiNetworks(context))
-        }
-    }
-    
-    Column(modifier = Modifier.fillMaxWidth()) {
-        // Controls
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            HackerButton(
-                text = "← BACK",
-                onClick = onBackClick,
-                color = ConsoleGray,
-                modifier = Modifier.weight(1f)
-            )
-            
-            HackerButton(
-                text = "🔍 REFRESH",
-                onClick = { onScanComplete(scanWifiNetworks(context)) },
-                color = NeonBlue,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Vulnerable networks attack button
-        val vulnerableNetworks = networks.filter { it.isVulnerable }
-        if (vulnerableNetworks.isNotEmpty()) {
-            HackerButton(
-                text = "⚔ ATTACK ${vulnerableNetworks.size} VULNERABLE NETWORKS ⚔",
-                onClick = { onAttackClick(vulnerableNetworks) },
-                color = ErrorRed,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-        
-        // Network list
-        if (isScanning) {
-            ScanningIndicator()
-        } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(networks) { network ->
-                    NetworkCard(network = network)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun AdvancedScreen(onBackClick: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        HackerButton(
-            text = "← BACK TO MAIN",
-            onClick = onBackClick,
-            color = ConsoleGray,
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Text(
-            text = "⚙ ADVANCED OPTIONS ⚙",
-            style = MaterialTheme.typography.headlineSmall,
-            color = NeonBlue,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(modifier = Modifier.height(20.dp))
-        
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            item {
-                AdvancedOptionCard(
-                    title = "Interface Selection",
-                    description = "Choose WiFi interface for monitoring",
-                    icon = Icons.Default.Wifi
-                )
-            }
-            
-            item {
-                AdvancedOptionCard(
-                    title = "Attack Timeout",
-                    description = "Set maximum time per attack attempt",
-                    icon = Icons.Default.Timer
-                )
-            }
-            
-            item {
-                AdvancedOptionCard(
-                    title = "PIN Generation",
-                    description = "Configure WPS PIN generation method",
-                    icon = Icons.Default.Key
-                )
-            }
-            
-            item {
-                AdvancedOptionCard(
-                    title = "Root Commands",
-                    description = "Test root access and permissions",
-                    icon = Icons.Default.Security
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ResultsScreen(
-    results: List<WiFiNetwork>,
-    onBackClick: () -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        HackerButton(
-            text = "← BACK TO MAIN",
-            onClick = onBackClick,
-            color = ConsoleGray,
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Text(
-            text = "📊 ATTACK RESULTS 📊",
-            style = MaterialTheme.typography.headlineSmall,
-            color = NeonOrange,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(modifier = Modifier.height(20.dp))
-        
-        if (results.isEmpty()) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = CardDark)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = ConsoleGray,
-                        modifier = Modifier.size(48.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Text(
-                        text = "No results available",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = ConsoleGray
-                    )
-                    
-                    Text(
-                        text = "Run a scan and attack to see results here",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = ConsoleGray,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(results) { result ->
-                    ResultCard(result = result)
-                }
+            OneshotTheme {
+                HackerApp()
             }
         }
     }
@@ -515,8 +75,11 @@ data class WiFiNetwork(
     val attackStatus: AttackStatus = AttackStatus.NONE
 )
 
-enum class AttackStatus { NONE, SCANNING, ATTACKING, SUCCESS, FAILED }
+enum class AttackStatus {
+    NONE, SCANNING, ATTACKING, SUCCESS, FAILED
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HackerApp() {
     var currentScreen by remember { mutableStateOf(Screen.MAIN) }
@@ -580,18 +143,42 @@ enum class Screen {
 
 @Composable
 fun HackerHeader() {
-    val infinite = rememberInfiniteTransition(label = "")
-    val alpha by infinite.animateFloat(
-        0.6f, 1f,
+    val infiniteTransition = rememberInfiniteTransition(label = "")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(1500, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ), label = ""
     )
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-        Text("◉ ONESHOT ◉", style = MaterialTheme.typography.headlineLarge, color = NeonGreen, modifier = Modifier.alpha(alpha), textAlign = TextAlign.Center)
-        Text("WiFi WPS Penetration Suite", style = MaterialTheme.typography.bodyMedium, color = MatrixGreen, textAlign = TextAlign.Center)
-        Text("» AUTHORIZED TESTING ONLY «", style = MaterialTheme.typography.labelSmall, color = ErrorRed, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+    
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = "◉ ONESHOT ◉",
+            style = MaterialTheme.typography.headlineLarge,
+            color = NeonGreen,
+            modifier = Modifier.alpha(alpha),
+            textAlign = TextAlign.Center
+        )
+        
+        Text(
+            text = "WiFi WPS Penetration Suite",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MatrixGreen,
+            textAlign = TextAlign.Center
+        )
+        
+        Text(
+            text = "» AUTHORIZED TESTING ONLY «",
+            style = MaterialTheme.typography.labelSmall,
+            color = ErrorRed,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }
 
@@ -641,7 +228,12 @@ fun MainScreen(
                 modifier = Modifier.padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Removed Security icon (requires extended set not yet loaded) – optional to add later
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = null,
+                    tint = NeonOrange,
+                    modifier = Modifier.size(32.dp)
+                )
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
@@ -1091,4 +683,8 @@ private fun copyScriptToInternalStorage(context: Context): File {
 
 @Preview(showBackground = true)
 @Composable
-fun HackerAppPreview() { OneshotTheme { HackerApp() } }
+fun HackerAppPreview() {
+    OneshotTheme {
+        HackerApp()
+    }
+}
