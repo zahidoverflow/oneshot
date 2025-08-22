@@ -61,5 +61,3 @@ fun OneshotTheme(
         content = content
     )
 }
-}
-}
