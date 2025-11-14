@@ -20,27 +20,22 @@ That's it! The installer will:
 
 ## Usage After Installation
 
-### 1. Scan for Vulnerable Networks
-```bash
-sudo oneshot -i wlan0 -S
-```
-
-### 2. Run Pixie Dust Attack (Automatic)
+### 1. Run Pixie Dust Attack (Auto-scan and Attack)
 ```bash
 sudo oneshot -i wlan0 --iface-down -K
 ```
 
-### 3. Attack Specific Network
+### 2. Attack Specific Network
 ```bash
 sudo oneshot -i wlan0 -b AA:BB:CC:DD:EE:FF -K
 ```
 
-### 4. Bruteforce Attack
+### 3. Bruteforce Attack
 ```bash
 sudo oneshot -i wlan0 -b AA:BB:CC:DD:EE:FF -B
 ```
 
-### 5. Get Help
+### 4. Get Help
 ```bash
 sudo oneshot --help
 ```
@@ -50,8 +45,7 @@ sudo oneshot --help
 | Option | Description |
 |--------|-------------|
 | `-i wlan0` | Specify wireless interface |
-| `-S` | Scan for WPS-enabled networks |
-| `-K` | Run Pixie Dust attack |
+| `-K` | Run Pixie Dust attack (auto-scans networks) |
 | `-B` | Run online bruteforce attack |
 | `-b BSSID` | Target specific network by BSSID |
 | `--iface-down` | Don't bring interface down/up automatically |
