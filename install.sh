@@ -103,13 +103,19 @@ chmod +x "$ONESHOT_SCRIPT"
 
 # Create convenience wrapper script for Termux
 echo -e "${YELLOW}[•] Creating launcher scripts...${NC}"
-cat > "$PREFIX/bin/oneshot" << 'WRAPPER'
+
+# Get the actual user's home directory (not root's)
+ACTUAL_HOME=$(eval echo ~${SUDO_USER:-$USER})
+[ -z "$ACTUAL_HOME" ] && ACTUAL_HOME="$HOME"
+
+cat > "$PREFIX/bin/oneshot" << WRAPPER
 #!/data/data/com.termux/files/usr/bin/bash
-SCRIPT_DIR="$HOME/oneshot"
-if [ -f "$SCRIPT_DIR/oneshot.py" ]; then
-    sudo python3 "$SCRIPT_DIR/oneshot.py" "$@"
+# Use the actual installation directory, not root's home
+SCRIPT_DIR="$INSTALL_DIR"
+if [ -f "\$SCRIPT_DIR/oneshot.py" ]; then
+    sudo python3 "\$SCRIPT_DIR/oneshot.py" "\$@"
 else
-    echo "Error: oneshot.py not found in $SCRIPT_DIR"
+    echo "Error: oneshot.py not found in \$SCRIPT_DIR"
     exit 1
 fi
 WRAPPER
