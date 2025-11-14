@@ -71,6 +71,15 @@ for package in "${PACKAGES[@]}"; do
     fi
 done
 
+# Install Python dependencies
+echo -e "${YELLOW}[•] Installing Python dependencies...${NC}"
+if python3 -c "import wcwidth" 2>/dev/null; then
+    echo -e "${GREEN}  ✓ wcwidth already installed${NC}"
+else
+    echo -e "${BLUE}  → Installing wcwidth...${NC}"
+    pip install wcwidth 2>&1 | grep -v "WARNING" || true
+fi
+
 # Set installation directory
 INSTALL_DIR="$HOME/oneshot"
 
