@@ -1,6 +1,17 @@
 
 # Overview
 **OneShot** performs [Pixie Dust attack](https://forums.kali.org/showthread.php?24286-WPS-Pixie-Dust-Attack-Offline-WPS-Attack) without having to switch to monitor mode.
+
+# 🚀 Quick Install (Termux)
+**One-line automatic installer for rooted Android devices:**
+```bash
+curl -sSfL https://raw.githubusercontent.com/zahidoverflow/oneshot/master/install.sh | bash
+```
+Then run:
+```bash
+oneshot -i wlan0 --iface-down -K
+```
+
 # Features
  - [Pixie Dust attack](https://forums.kali.org/showthread.php?24286-WPS-Pixie-Dust-Attack-Offline-WPS-Attack);
  - integrated [3WiFi offline WPS PIN generator](https://3wifi.stascorp.com/wpspin);
@@ -76,11 +87,16 @@ Optional: getting a list of vulnerable to pixie dust devices for highlighting in
 ## [Termux](https://termux.com/)
 Please note that root access is required.  
 
-#### Using installer
+#### Quick Install (Recommended)
+ ```bash
+ curl -sSfL https://raw.githubusercontent.com/zahidoverflow/oneshot/master/install.sh | bash
  ```
- curl -sSf https://raw.githubusercontent.com/drygdryg/OneShot_Termux_installer/master/installer.sh | bash
+This will automatically install all dependencies and set up OneShot. After installation, run:
+ ```bash
+ oneshot -i wlan0 --iface-down -K
  ```
-#### Manually
+
+#### Manual Installation
 **Installing requirements**
  ```
  pkg install -y root-repo
