@@ -49,7 +49,7 @@ echo -e "${YELLOW}[•] Installing root repository...${NC}"
 pkg install -y root-repo 2>/dev/null || true
 
 # Install dependencies
-echo -e "${YELLOW}[•] Installing dependencies (this may take a few minutes)...${NC}"
+echo -e "${YELLOW}[•] Checking and installing dependencies...${NC}"
 PACKAGES=(
     "tsu"
     "python"
@@ -63,8 +63,12 @@ PACKAGES=(
 )
 
 for package in "${PACKAGES[@]}"; do
-    echo -e "${BLUE}  → Installing $package...${NC}"
-    pkg install -y "$package" 2>&1 | grep -v "Warning" || true
+    if pkg list-installed 2>/dev/null | grep -q "^${package}/"; then
+        echo -e "${GREEN}  ✓ $package already installed${NC}"
+    else
+        echo -e "${BLUE}  → Installing $package...${NC}"
+        pkg install -y "$package" 2>&1 | grep -v "Warning" || true
+    fi
 done
 
 # Set installation directory
@@ -80,40 +84,30 @@ fi
 echo -e "${YELLOW}[•] Downloading OneShot from GitHub...${NC}"
 git clone --depth 1 --branch master https://github.com/zahidoverflow/oneshot.git "$INSTALL_DIR"
 
-# Download vulnerability database
-echo -e "${YELLOW}[•] Downloading vulnerability database...${NC}"
+# Verify oneshot.py exists
+echo -e "${YELLOW}[•] Verifying installation...${NC}"
 cd "$INSTALL_DIR"
-wget -q https://raw.githubusercontent.com/drygdryg/OneShot/master/vulnwsc.txt -O vulnwsc.txt 2>/dev/null || \
-wget -q https://raw.githubusercontent.com/zahidoverflow/oneshot/master/vulnwsc.txt -O vulnwsc.txt 2>/dev/null || \
-echo -e "${YELLOW}  → Vulnerability database not found (optional)${NC}"
 
-# Find the Python script
 ONESHOT_SCRIPT=""
 if [ -f "$INSTALL_DIR/oneshot.py" ]; then
     ONESHOT_SCRIPT="$INSTALL_DIR/oneshot.py"
-elif [ -f "$INSTALL_DIR/app/src/main/res/raw/oneshot_py" ]; then
-    ONESHOT_SCRIPT="$INSTALL_DIR/app/src/main/res/raw/oneshot_py"
-    # Create symlink for easier access
-    ln -sf "$ONESHOT_SCRIPT" "$INSTALL_DIR/oneshot.py" 2>/dev/null || true
-fi
-
-# If no Python script found, download from original repo
-if [ -z "$ONESHOT_SCRIPT" ] || [ ! -f "$ONESHOT_SCRIPT" ]; then
-    echo -e "${YELLOW}[•] Python script not found, downloading from upstream...${NC}"
-    wget -q https://raw.githubusercontent.com/drygdryg/OneShot/master/oneshot.py -O "$INSTALL_DIR/oneshot.py"
-    ONESHOT_SCRIPT="$INSTALL_DIR/oneshot.py"
+    echo -e "${GREEN}[✓] OneShot script found${NC}"
+else
+    echo -e "${RED}[✗] Error: oneshot.py not found in repository${NC}"
+    echo -e "${RED}Please check your repository structure${NC}"
+    exit 1
 fi
 
 # Make script executable
 chmod +x "$ONESHOT_SCRIPT"
 
-# Create convenience wrapper script
-echo -e "${YELLOW}[•] Creating launcher script...${NC}"
+# Create convenience wrapper script for Termux
+echo -e "${YELLOW}[•] Creating launcher scripts...${NC}"
 cat > "$PREFIX/bin/oneshot" << 'WRAPPER'
 #!/data/data/com.termux/files/usr/bin/bash
 SCRIPT_DIR="$HOME/oneshot"
 if [ -f "$SCRIPT_DIR/oneshot.py" ]; then
-    su -c "python $SCRIPT_DIR/oneshot.py $@"
+    sudo python3 "$SCRIPT_DIR/oneshot.py" "$@"
 else
     echo "Error: oneshot.py not found in $SCRIPT_DIR"
     exit 1
@@ -121,6 +115,49 @@ fi
 WRAPPER
 
 chmod +x "$PREFIX/bin/oneshot"
+
+# Install to system-wide location for all root managers (Magisk/KernelSU/APatch)
+if [ -d "/data/adb" ]; then
+    echo -e "${YELLOW}[•] Installing to system-wide location...${NC}"
+    su -c "mkdir -p /data/adb/bin" 2>/dev/null || true
+    
+    # Create system-wide wrapper
+    cat > /tmp/oneshot_system << 'SYSWRAPPER'
+#!/system/bin/sh
+SCRIPT_PATH="/data/data/com.termux/files/home/oneshot/oneshot.py"
+PYTHON_PATH="/data/data/com.termux/files/usr/bin/python3"
+
+if [ ! -f "$SCRIPT_PATH" ]; then
+    SCRIPT_PATH="$HOME/oneshot/oneshot.py"
+fi
+
+if [ -f "$SCRIPT_PATH" ]; then
+    if [ -x "$PYTHON_PATH" ]; then
+        "$PYTHON_PATH" "$SCRIPT_PATH" "$@"
+    elif command -v python3 >/dev/null 2>&1; then
+        python3 "$SCRIPT_PATH" "$@"
+    else
+        echo "Error: Python 3 not found"
+        exit 1
+    fi
+else
+    echo "Error: oneshot.py not found"
+    echo "Please run from Termux or ensure the script is installed"
+    exit 1
+fi
+SYSWRAPPER
+    
+    su -c "cp /tmp/oneshot_system /data/adb/bin/oneshot && chmod 755 /data/adb/bin/oneshot" 2>/dev/null
+    rm -f /tmp/oneshot_system
+    
+    if [ -f "/data/adb/bin/oneshot" ]; then
+        echo -e "${GREEN}[✓] Installed to /data/adb/bin/oneshot (global access)${NC}"
+    else
+        echo -e "${YELLOW}[!] Could not install to /data/adb/bin (Termux-only access)${NC}"
+    fi
+else
+    echo -e "${YELLOW}[!] /data/adb not found (non-standard root or Termux-only)${NC}"
+fi
 
 # Test wireless interface
 echo -e "${YELLOW}[•] Detecting wireless interface...${NC}"
@@ -139,20 +176,27 @@ echo -e "${GREEN}Quick Start Guide:${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo -e "${YELLOW}1. Scan for vulnerable networks:${NC}"
-echo -e "   ${GREEN}oneshot -i $WLAN_INTERFACE -S${NC}"
+echo -e "   ${GREEN}sudo oneshot -i $WLAN_INTERFACE -S${NC}"
 echo ""
 echo -e "${YELLOW}2. Run Pixie Dust attack:${NC}"
-echo -e "   ${GREEN}oneshot -i $WLAN_INTERFACE --iface-down -K${NC}"
+echo -e "   ${GREEN}sudo oneshot -i $WLAN_INTERFACE --iface-down -K${NC}"
 echo ""
 echo -e "${YELLOW}3. Attack specific network:${NC}"
-echo -e "   ${GREEN}oneshot -i $WLAN_INTERFACE -b [BSSID] -K${NC}"
+echo -e "   ${GREEN}sudo oneshot -i $WLAN_INTERFACE -b [BSSID] -K${NC}"
 echo ""
 echo -e "${YELLOW}4. Get help:${NC}"
-echo -e "   ${GREEN}oneshot --help${NC}"
+echo -e "   ${GREEN}sudo oneshot --help${NC}"
 echo ""
+if [ -f "/data/adb/bin/oneshot" ]; then
+echo -e "${GREEN}[✓] Global access enabled - run 'oneshot' from any terminal!${NC}"
+echo ""
+fi
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${YELLOW}Installation Path:${NC} $INSTALL_DIR"
 echo -e "${YELLOW}WiFi Interface:${NC} $WLAN_INTERFACE"
+if [ -f "/data/adb/bin/oneshot" ]; then
+echo -e "${YELLOW}System Binary:${NC} /data/adb/bin/oneshot"
+fi
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo -e "${RED}⚠ WARNING: Only use on networks you own or have permission to test!${NC}"

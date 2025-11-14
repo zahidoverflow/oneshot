@@ -22,27 +22,27 @@ That's it! The installer will:
 
 ### 1. Scan for Vulnerable Networks
 ```bash
-oneshot -i wlan0 -S
+sudo oneshot -i wlan0 -S
 ```
 
 ### 2. Run Pixie Dust Attack (Automatic)
 ```bash
-oneshot -i wlan0 --iface-down -K
+sudo oneshot -i wlan0 --iface-down -K
 ```
 
 ### 3. Attack Specific Network
 ```bash
-oneshot -i wlan0 -b AA:BB:CC:DD:EE:FF -K
+sudo oneshot -i wlan0 -b AA:BB:CC:DD:EE:FF -K
 ```
 
 ### 4. Bruteforce Attack
 ```bash
-oneshot -i wlan0 -b AA:BB:CC:DD:EE:FF -B
+sudo oneshot -i wlan0 -b AA:BB:CC:DD:EE:FF -B
 ```
 
 ### 5. Get Help
 ```bash
-oneshot --help
+sudo oneshot --help
 ```
 
 ## Common Options
@@ -79,7 +79,7 @@ su -c "python ~/oneshot/oneshot.py -i wlan0 -K"
 ```
 Or use the wrapper:
 ```bash
-oneshot -i wlan0 -K
+sudo oneshot -i wlan0 -K
 ```
 
 ### Reinstall

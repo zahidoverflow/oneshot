@@ -9,6 +9,10 @@ curl -sSfL https://zahidoverflow.github.io/oneshot/install.sh | bash
 ```
 Then run:
 ```bash
+sudo oneshot -i wlan0 --iface-down -K
+```
+Or from any terminal on rooted Android:
+```bash
 oneshot -i wlan0 --iface-down -K
 ```
 
@@ -108,7 +112,7 @@ This will automatically install all dependencies and set up OneShot. After insta
  ```
 #### Running
  ```
- sudo python OneShot/oneshot.py -i wlan0 --iface-down -K
+ sudo python3 OneShot/oneshot.py -i wlan0 --iface-down -K
  ```
 
 # Usage
