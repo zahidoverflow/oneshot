@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # OneShot Termux Installer - One-Line Setup Script
-# Usage: curl -sSfL https://raw.githubusercontent.com/zahidoverflow/oneshot/master/install.sh | bash
+# Usage: curl -sSfL https://zahidoverflow.github.io/oneshot/install.sh | bash
 
 set -e
 

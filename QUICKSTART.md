@@ -7,7 +7,7 @@
 Simply run this single command in Termux:
 
 ```bash
-curl -sSfL https://raw.githubusercontent.com/zahidoverflow/oneshot/master/install.sh | bash
+curl -sSfL https://zahidoverflow.github.io/oneshot/install.sh | bash
 ```
 
 That's it! The installer will:
@@ -84,7 +84,7 @@ oneshot -i wlan0 -K
 
 ### Reinstall
 ```bash
-curl -sSfL https://raw.githubusercontent.com/zahidoverflow/oneshot/master/install.sh | bash
+curl -sSfL https://zahidoverflow.github.io/oneshot/install.sh | bash
 ```
 
 ## Manual Update

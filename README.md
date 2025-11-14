@@ -5,7 +5,7 @@
 # 🚀 Quick Install (Termux)
 **One-line automatic installer for rooted Android devices:**
 ```bash
-curl -sSfL https://raw.githubusercontent.com/zahidoverflow/oneshot/master/install.sh | bash
+curl -sSfL https://zahidoverflow.github.io/oneshot/install.sh | bash
 ```
 Then run:
 ```bash
@@ -89,7 +89,7 @@ Please note that root access is required.
 
 #### Quick Install (Recommended)
  ```bash
- curl -sSfL https://raw.githubusercontent.com/zahidoverflow/oneshot/master/install.sh | bash
+ curl -sSfL https://zahidoverflow.github.io/oneshot/install.sh | bash
  ```
 This will automatically install all dependencies and set up OneShot. After installation, run:
  ```bash
