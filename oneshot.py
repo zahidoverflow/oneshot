@@ -234,9 +234,17 @@ class WPSpin:
 
     def generate(self, algo, mac):
         """
-        WPS pin generator
-        @algo — the WPS pin algorithm ID
-        Returns the WPS pin string value
+        Generate a WPS PIN using the specified algorithm.
+        
+        Args:
+            algo (str): Algorithm ID (e.g., 'pin24', 'pin28', 'pinASUS', 'pinCisco')
+            mac (str or NetworkAddress): MAC address to use for PIN generation
+        
+        Returns:
+            str: Generated 8-digit WPS PIN (or empty string for 'pinEmpty')
+        
+        Raises:
+            ValueError: If the algorithm ID is not recognized
         """
         mac = NetworkAddress(mac)
         if algo not in self.algos:
@@ -250,7 +258,17 @@ class WPSpin:
 
     def getAll(self, mac, get_static=True):
         """
-        Get all WPS pin's for single MAC
+        Generate all possible WPS PINs for a given MAC address.
+        
+        Args:
+            mac (str or NetworkAddress): Target MAC address
+            get_static (bool): If True, includes static PINs; if False, only MAC-based PINs
+        
+        Returns:
+            list: List of dictionaries, each containing:
+                  - 'id': Algorithm ID
+                  - 'name': Human-readable algorithm name
+                  - 'pin': Generated PIN
         """
         res = []
         for ID, algo in self.algos.items():
@@ -268,7 +286,14 @@ class WPSpin:
 
     def getList(self, mac, get_static=True):
         """
-        Get all WPS pin's for single MAC as list
+        Generate all possible WPS PINs for a given MAC address as a simple list.
+        
+        Args:
+            mac (str or NetworkAddress): Target MAC address
+            get_static (bool): If True, includes static PINs; if False, only MAC-based PINs
+        
+        Returns:
+            list: List of PIN strings (8 digits each)
         """
         res = []
         for ID, algo in self.algos.items():
@@ -279,7 +304,17 @@ class WPSpin:
 
     def getSuggested(self, mac):
         """
-        Get all suggested WPS pin's for single MAC
+        Get suggested WPS PINs based on MAC address vendor identification.
+        
+        Analyzes the MAC address OUI (Organizationally Unique Identifier) to determine
+        which PIN algorithms are most likely to work for this device.
+        
+        Args:
+            mac (str or NetworkAddress): Target MAC address
+        
+        Returns:
+            list: List of dictionaries with suggested PINs, ordered by likelihood.
+                 Each dict contains 'id', 'name', and 'pin' fields.
         """
         algos = self._suggest(mac)
         res = []
@@ -297,7 +332,13 @@ class WPSpin:
 
     def getSuggestedList(self, mac):
         """
-        Get all suggested WPS pin's for single MAC as list
+        Get suggested WPS PINs as a simple list (PINs only, no metadata).
+        
+        Args:
+            mac (str or NetworkAddress): Target MAC address
+        
+        Returns:
+            list: List of PIN strings, ordered by likelihood
         """
         algos = self._suggest(mac)
         res = []
@@ -306,6 +347,15 @@ class WPSpin:
         return res
 
     def getLikely(self, mac):
+        """
+        Get the most likely WPS PIN for a given MAC address.
+        
+        Args:
+            mac (str or NetworkAddress): Target MAC address
+        
+        Returns:
+            str: Most likely PIN, or None if no suggestions available
+        """
         res = self.getSuggestedList(mac)
         if res:
             return res[0]
@@ -314,8 +364,16 @@ class WPSpin:
 
     def _suggest(self, mac):
         """
-        Get algos suggestions for single MAC
-        Returns the algo ID
+        Suggest WPS PIN algorithms based on MAC address OUI.
+        
+        Analyzes the first 6 characters of the MAC address (OUI) to identify
+        the device manufacturer and suggests appropriate PIN generation algorithms.
+        
+        Args:
+            mac (str or NetworkAddress): MAC address to analyze
+        
+        Returns:
+            list: List of algorithm IDs, ordered by likelihood of success
         """
         mac = mac.replace(':', '').upper()
         algorithms = {
