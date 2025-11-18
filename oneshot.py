@@ -1,5 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+OneShot - WiFi WPS Penetration Testing Tool
+
+This module implements a comprehensive WPS (Wi-Fi Protected Setup) penetration testing tool
+that performs various attacks including Pixie Dust attacks, online bruteforce, and WPS PIN
+generation using multiple algorithms.
+
+The tool is designed to work on both rooted Android devices (via Termux) and Linux systems,
+and it operates without requiring monitor mode on the wireless interface.
+
+Main Components:
+    - NetworkAddress: MAC address representation and manipulation
+    - WPSpin: WPS PIN generation using 30+ algorithms
+    - PixiewpsData: Data storage for Pixie Dust attack
+    - ConnectionStatus: WPS connection status tracking
+    - BruteforceStatus: Online bruteforce progress tracking
+    - Companion: Main application coordinator and WPA supplicant interface
+    - WiFiScanner: WiFi network scanning and vulnerability detection
+
+Author: rofl0r (original), drygdryg (modifications), zahidoverflow (Termux optimization)
+License: MIT
+"""
 import sys
 import subprocess
 import os
@@ -20,7 +42,36 @@ import wcwidth
 
 
 class NetworkAddress:
+    """
+    Represents a network MAC address with bidirectional conversion between string and integer formats.
+    
+    This class provides a convenient way to work with MAC addresses, supporting both
+    string representation (e.g., "AA:BB:CC:DD:EE:FF") and integer representation.
+    It allows arithmetic operations and comparisons on MAC addresses.
+    
+    Attributes:
+        _str_repr (str): String representation of the MAC address (colon-separated uppercase hex)
+        _int_repr (int): Integer representation of the MAC address
+    
+    Examples:
+        >>> mac = NetworkAddress("AA:BB:CC:DD:EE:FF")
+        >>> print(mac.string)
+        'AA:BB:CC:DD:EE:FF'
+        >>> mac = NetworkAddress(0xAABBCCDDEEFF)
+        >>> print(mac.string)
+        'AA:BB:CC:DD:EE:FF'
+    """
     def __init__(self, mac):
+        """
+        Initialize a NetworkAddress object from either a string or integer MAC address.
+        
+        Args:
+            mac (str or int): MAC address in string format (with ':', '-', or '.' separators)
+                             or as an integer
+        
+        Raises:
+            ValueError: If mac is neither a string nor an integer
+        """
         if isinstance(mac, int):
             self._int_repr = mac
             self._str_repr = self._int2mac(mac)
@@ -74,10 +125,28 @@ class NetworkAddress:
 
     @staticmethod
     def _mac2int(mac):
+        """
+        Convert MAC address string to integer.
+        
+        Args:
+            mac (str): MAC address string (colons will be removed)
+        
+        Returns:
+            int: Integer representation of the MAC address
+        """
         return int(mac.replace(':', ''), 16)
 
     @staticmethod
     def _int2mac(mac):
+        """
+        Convert integer to MAC address string.
+        
+        Args:
+            mac (int): Integer representation of MAC address
+        
+        Returns:
+            str: MAC address in standard colon-separated format (uppercase)
+        """
         mac = hex(mac).split('x')[-1].upper()
         mac = mac.zfill(12)
         mac = ':'.join(mac[i:i+2] for i in range(0, 12, 2))
@@ -89,7 +158,28 @@ class NetworkAddress:
 
 
 class WPSpin:
-    """WPS pin generator"""
+    """
+    WPS PIN generator supporting 30+ different algorithms.
+    
+    This class generates WPS PINs using various algorithms including MAC-based algorithms
+    (24-bit, 28-bit, 32-bit), vendor-specific algorithms (D-Link, ASUS, Broadcom, Realtek, etc.),
+    and static PINs known to be used by specific router models.
+    
+    The generator is used to create potential WPS PINs for testing purposes, which can then
+    be used in WPS attacks or vulnerability assessments.
+    
+    Attributes:
+        ALGO_MAC (int): Algorithm type that requires MAC address as input
+        ALGO_EMPTY (int): Algorithm type that returns an empty PIN
+        ALGO_STATIC (int): Algorithm type that returns a static PIN
+        algos (dict): Dictionary mapping algorithm names to their configuration including
+                     name, mode, and generator function
+    
+    Algorithm Types:
+        - MAC-based: Derive PIN from device MAC address (pin24, pin28, pin32, pinDLink, etc.)
+        - Static: Known default PINs for specific vendors (Cisco, Broadcom, Realtek, etc.)
+        - Empty: Empty PIN for specific use cases
+    """
     def __init__(self):
         self.ALGO_MAC = 0
         self.ALGO_EMPTY = 1
@@ -314,6 +404,17 @@ class WPSpin:
 
 
 def recvuntil(pipe, what):
+    """
+    Read from a pipe until a specific string is encountered.
+    
+    Args:
+        pipe: Process pipe to read from (must have stdout attribute)
+        what (str): String to search for in the output
+    
+    Returns:
+        str: All data read up to and including the search string,
+             or all available data if EOF is reached
+    """
     s = ''
     while True:
         inp = pipe.stdout.read(1)
@@ -325,11 +426,44 @@ def recvuntil(pipe, what):
 
 
 def get_hex(line):
+    """
+    Extract hexadecimal data from a WPA supplicant debug line.
+    
+    Parses lines in the format "prefix: offset: HEX_DATA" and extracts
+    the hexadecimal portion, removing spaces and converting to uppercase.
+    
+    Args:
+        line (str): Debug line from WPA supplicant output
+    
+    Returns:
+        str: Extracted hexadecimal string (uppercase, no spaces)
+    
+    Example:
+        >>> get_hex("WPS: Enrollee Nonce: 12:34:56 78 90 ab cd ef")
+        '1234567890ABCDEF'
+    """
     a = line.split(':', 3)
     return a[2].replace(' ', '').upper()
 
 
 class PixiewpsData:
+    """
+    Stores data required for Pixie Dust attack using pixiewps tool.
+    
+    The Pixie Dust attack is an offline WPS PIN recovery method that exploits weak
+    random number generation in some WPS implementations. This class collects the
+    necessary cryptographic data from WPS handshake messages to perform the attack.
+    
+    Attributes:
+        pke (str): Public Key of the Enrollee (AP)
+        pkr (str): Public Key of the Registrar (client)
+        e_hash1 (str): First hash value from the Enrollee
+        e_hash2 (str): Second hash value from the Enrollee
+        authkey (str): Authentication key
+        e_nonce (str): Enrollee nonce value
+    
+    All attributes are hexadecimal strings extracted from WPS protocol messages.
+    """
     def __init__(self):
         self.pke = ''
         self.pkr = ''
@@ -339,13 +473,29 @@ class PixiewpsData:
         self.e_nonce = ''
 
     def clear(self):
+        """Reset all stored Pixie Dust data to initial empty state."""
         self.__init__()
 
     def got_all(self):
+        """
+        Check if all required data for Pixie Dust attack has been collected.
+        
+        Returns:
+            bool: True if all six required fields are present, False otherwise
+        """
         return (self.pke and self.pkr and self.e_nonce and self.authkey
                 and self.e_hash1 and self.e_hash2)
 
     def get_pixie_cmd(self, full_range=False):
+        """
+        Generate the pixiewps command line with collected data.
+        
+        Args:
+            full_range (bool): If True, adds --force flag to bruteforce full range
+        
+        Returns:
+            str: Complete pixiewps command ready to execute
+        """
         pixiecmd = "pixiewps --pke {} --pkr {} --e-hash1 {}"\
                     " --e-hash2 {} --authkey {} --e-nonce {}".format(
                     self.pke, self.pkr, self.e_hash1,
@@ -356,6 +506,21 @@ class PixiewpsData:
 
 
 class ConnectionStatus:
+    """
+    Tracks the status of WPS connection attempts.
+    
+    This class monitors the WPS handshake progress and stores the results
+    of connection attempts, including successful credential recovery.
+    
+    Attributes:
+        status (str): Current connection status. Valid values:
+                     'WSC_NACK' - WPS handshake rejected (wrong PIN)
+                     'WPS_FAIL' - WPS connection failed
+                     'GOT_PSK' - Successfully obtained WiFi credentials
+        last_m_message (int): Last WPS message number exchanged (M1-M8)
+        essid (str): Network name (SSID) if successfully retrieved
+        wpa_psk (str): WiFi password (PSK) if successfully retrieved
+    """
     def __init__(self):
         self.status = ''   # Must be WSC_NACK, WPS_FAIL or GOT_PSK
         self.last_m_message = 0
@@ -363,13 +528,37 @@ class ConnectionStatus:
         self.wpa_psk = ''
 
     def isFirstHalfValid(self):
+        """
+        Check if the first half of the WPS PIN was accepted.
+        
+        WPS uses an 8-digit PIN split into two 4-digit halves. This method checks
+        if we've progressed past message M5, which indicates the first half is valid.
+        
+        Returns:
+            bool: True if the first 4 digits of the PIN are correct
+        """
         return self.last_m_message > 5
 
     def clear(self):
+        """Reset connection status to initial state."""
         self.__init__()
 
 
 class BruteforceStatus:
+    """
+    Tracks progress and statistics for online WPS PIN bruteforce attacks.
+    
+    This class monitors the bruteforce attack progress, calculates timing statistics,
+    and provides periodic status updates during long-running bruteforce attempts.
+    
+    Attributes:
+        start_time (str): Timestamp when the bruteforce attack started
+        mask (str): Current PIN being tested (4 or 8 digits)
+        last_attempt_time (float): Unix timestamp of the last PIN attempt
+        attempts_times (deque): Rolling window of recent attempt durations
+        counter (int): Number of attempts since last status display
+        statistics_period (int): Number of attempts between status displays
+    """
     def __init__(self):
         self.start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.mask = ''
@@ -380,6 +569,11 @@ class BruteforceStatus:
         self.statistics_period = 5
 
     def display_status(self):
+        """
+        Display current bruteforce progress statistics.
+        
+        Shows completion percentage, start time, and average time per PIN attempt.
+        """
         average_pin_time = statistics.mean(self.attempts_times)
         if len(self.mask) == 4:
             percentage = int(self.mask) / 11000 * 100
@@ -389,6 +583,12 @@ class BruteforceStatus:
             percentage, self.start_time, average_pin_time))
 
     def registerAttempt(self, mask):
+        """
+        Register a new PIN attempt and update statistics.
+        
+        Args:
+            mask (str): The PIN that was just attempted
+        """
         self.mask = mask
         self.counter += 1
         current_time = time.time()
@@ -399,11 +599,42 @@ class BruteforceStatus:
             self.display_status()
 
     def clear(self):
+        """Reset bruteforce status to initial state."""
         self.__init__()
 
 
 class Companion:
-    """Main application part"""
+    """
+    Main application coordinator for WPS attacks.
+    
+    This class is the core component that orchestrates WPS penetration testing operations.
+    It manages the WPA supplicant interface, processes WPS protocol messages, executes
+    different attack modes (Pixie Dust, bruteforce, PIN attempts), and handles credential
+    recovery and storage.
+    
+    The Companion class acts as a bridge between the user interface, WPA supplicant daemon,
+    and various attack modules. It interprets WPS handshake messages, extracts cryptographic
+    data for Pixie Dust attacks, manages connection attempts, and reports results.
+    
+    Attributes:
+        interface (str): Wireless network interface name (e.g., 'wlan0')
+        save_result (bool): Whether to save discovered credentials to file
+        print_debug (bool): Whether to print verbose debug output
+        tempdir (str): Temporary directory for WPA supplicant control interface
+        tempconf (str): Path to temporary WPA supplicant configuration file
+        wpas_ctrl_path (str): Path to WPA supplicant control socket
+        wpas (subprocess.Popen): WPA supplicant process handle
+        res_socket_file (str): Unix socket file for receiving responses
+        retsock (socket.socket): Unix socket for WPA supplicant communication
+        pixie_creds (PixiewpsData): Storage for Pixie Dust attack data
+        connection_status (ConnectionStatus): Current WPS connection status
+        sessions_dir (str): Directory for storing session data
+        pixiewps_dir (str): Directory for storing pixiewps results
+        reports_dir (str): Directory for storing attack reports
+        generator (WPSpin): WPS PIN generator instance
+        bssid (str): Target access point BSSID (MAC address)
+        lastPwr (int): Last recorded signal strength
+    """
     def __init__(self, interface, save_result=False, print_debug=False, bssid=''):
         self.interface = interface
         self.save_result = save_result
@@ -850,7 +1081,22 @@ class Companion:
 
 
 class WiFiScanner:
-    """docstring for WiFiScanner"""
+    """
+    WiFi network scanner with WPS vulnerability detection.
+    
+    This class scans for nearby WiFi networks using the 'iw' tool, parses the scan results,
+    and identifies networks with WPS enabled. It also cross-references discovered networks
+    against a vulnerability database to identify potentially vulnerable devices.
+    
+    The scanner extracts detailed information about each network including SSID, BSSID,
+    signal strength, security type, WPS status, WPS lock status, and device information
+    (model, model number, device name).
+    
+    Attributes:
+        interface (str): Wireless network interface to use for scanning
+        vuln_list (str): Path to vulnerability database file (vulnwsc.txt)
+        stored (list): List of tuples (BSSID, ESSID) from previously stored scan results
+    """
     def __init__(self, interface, vuln_list=None):
         self.interface = interface
         self.vuln_list = vuln_list
@@ -1123,6 +1369,18 @@ class WiFiScanner:
 
 
 def ifaceUp(iface, down=False):
+    """
+    Bring a network interface up or down.
+    
+    Uses the 'ip link set' command to change interface state.
+    
+    Args:
+        iface (str): Network interface name (e.g., 'wlan0')
+        down (bool): If True, brings interface down; if False, brings it up
+    
+    Returns:
+        bool: True if operation succeeded, False otherwise
+    """
     if down:
         action = 'down'
     else:
@@ -1136,6 +1394,12 @@ def ifaceUp(iface, down=False):
 
 
 def die(msg):
+    """
+    Print error message and exit the program.
+    
+    Args:
+        msg (str): Error message to display
+    """
     sys.stderr.write(msg + '\n')
     sys.exit(1)
 
