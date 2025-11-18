@@ -669,6 +669,16 @@ class Companion:
         self.lastPwr = 0
 
     def __init_wpa_supplicant(self):
+        """
+        Initialize and start the wpa_supplicant daemon.
+        
+        Launches wpa_supplicant in debug mode with the configured interface and waits
+        for the control interface socket to become available. This is required for
+        all WPS operations.
+        
+        Raises:
+            ValueError: If wpa_supplicant fails to start or returns an error
+        """
         print('[*] Running wpa_supplicant…')
         cmd = 'wpa_supplicant -K -d -Dnl80211,wext,hostapd,wired -i{} -c{}'.format(self.interface, self.tempconf)
         self.wpas = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
@@ -683,11 +693,24 @@ class Companion:
             time.sleep(.1)
 
     def sendOnly(self, command):
-        """Sends command to wpa_supplicant"""
+        """
+        Send command to wpa_supplicant without waiting for response.
+        
+        Args:
+            command (str): WPA supplicant control command to send
+        """
         self.retsock.sendto(command.encode(), self.wpas_ctrl_path)
 
     def sendAndReceive(self, command):
-        """Sends command to wpa_supplicant and returns the reply"""
+        """
+        Send command to wpa_supplicant and return the reply.
+        
+        Args:
+            command (str): WPA supplicant control command to send
+        
+        Returns:
+            str: Response from wpa_supplicant
+        """
         self.retsock.sendto(command.encode(), self.wpas_ctrl_path)
         (b, address) = self.retsock.recvfrom(4096)
         inmsg = b.decode('utf-8', errors='replace')
@@ -695,6 +718,16 @@ class Companion:
 
     @staticmethod
     def _explain_wpas_not_ok_status(command: str, respond: str):
+        """
+        Provide helpful error message for wpa_supplicant failures.
+        
+        Args:
+            command (str): The command that was sent
+            respond (str): The response received
+        
+        Returns:
+            str: Human-readable error explanation
+        """
         if command.startswith(('WPS_REG', 'WPS_PBC')):
             if respond == 'UNKNOWN COMMAND':
                 return ('[!] It looks like your wpa_supplicant is compiled without WPS protocol support. '
@@ -1063,9 +1096,22 @@ class Companion:
                 raise KeyboardInterrupt
 
     def __print_with_indicators(self, level, msg):
+        """
+        Print message with status indicator and signal strength.
+        
+        Args:
+            level (str): Message level indicator (e.g., '*', '+', '-', '!')
+            msg (str): Message to print
+        """
         print('[{}] [{}] {}'.format(level, self.lastPwr, msg))
 
     def cleanup(self):
+        """
+        Clean up resources and terminate processes.
+        
+        Closes sockets, terminates the wpa_supplicant process, and removes
+        temporary files and directories created during operation.
+        """
         self.retsock.close()
         self.wpas.terminate()
         os.remove(self.res_socket_file)
@@ -1073,6 +1119,7 @@ class Companion:
         os.remove(self.tempconf)
 
     def __del__(self):
+        """Destructor to ensure cleanup on object deletion."""
         #self.cleanup()
         try:
             self.cleanup()
@@ -1119,7 +1166,23 @@ class WiFiScanner:
             self.stored = []
 
     def iw_scanner(self) -> Dict[int, dict]:
-        """Parsing iw scan results"""
+        """
+        Scan for WiFi networks using the 'iw' tool and parse results.
+        
+        Executes 'iw dev <interface> scan' and parses the output to extract detailed
+        information about each discovered network. Filters results to only include
+        networks with WPS enabled.
+        
+        Returns:
+            dict: Dictionary mapping index to network information dictionaries.
+                 Each network dict contains: BSSID, ESSID, Level (signal strength),
+                 Security type, WPS version, WPS locked status, Model, Model number,
+                 and Device name.
+            bool: False if scan failed or no WPS networks found
+        
+        The function uses nested handler functions to process different parts of
+        the scan output using regular expression matching.
+        """
         def handle_network(line, result, networks):
             networks.append(
                     {
