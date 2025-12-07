@@ -11,7 +11,7 @@
 Users can now install OneShot with a single command:
 
 ```bash
-curl -sSfL https://zahidoverflow.github.io/oneshot/install.sh | bash
+curl -fsSL https://zahidoverflow.github.io/oneshot/install.sh | bash
 ```
 
 ## 📦 What The Installer Does
@@ -54,7 +54,7 @@ git push origin master
 
 ### Step 2: Users Can Now Run
 ```bash
-curl -sSfL https://zahidoverflow.github.io/oneshot/install.sh | bash
+curl -fsSL https://zahidoverflow.github.io/oneshot/install.sh | bash
 ```
 
 ### Step 3: After Installation
@@ -129,7 +129,7 @@ Add this to your GitHub repo description:
 > 
 > 🚀 **One-line install:**
 > ```bash
-> curl -sSfL https://zahidoverflow.github.io/oneshot/install.sh | bash
+> curl -fsSL https://zahidoverflow.github.io/oneshot/install.sh | bash
 > ```
 > 
 > ✨ Features:

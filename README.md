@@ -15,7 +15,7 @@
 Install OneShot with a single command on your rooted Android device:
 
 ```bash
-curl -sSfL https://zahidoverflow.github.io/oneshot/install.sh | bash
+curl -fsSL https://zahidoverflow.github.io/oneshot/install.sh | bash
 ```
 
 ### Usage
@@ -70,7 +70,7 @@ sudo oneshot --help
 #### Automatic Installation (Recommended)
 
 ```bash
-curl -sSfL https://zahidoverflow.github.io/oneshot/install.sh | bash
+curl -fsSL https://zahidoverflow.github.io/oneshot/install.sh | bash
 ```
 
 **What the installer does:**
@@ -228,7 +228,7 @@ sudo oneshot -i wlan1 -K
 
 ```bash
 # Reinstall with dependencies
-curl -sSfL https://zahidoverflow.github.io/oneshot/install.sh | bash
+curl -fsSL https://zahidoverflow.github.io/oneshot/install.sh | bash
 ```
 
 ### RTNETLINK Error
@@ -262,7 +262,7 @@ git pull origin master
 ### Reinstall
 
 ```bash
-curl -sSfL https://zahidoverflow.github.io/oneshot/install.sh | bash
+curl -fsSL https://zahidoverflow.github.io/oneshot/install.sh | bash
 ```
 
 ### Uninstall
