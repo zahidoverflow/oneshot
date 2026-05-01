@@ -11,6 +11,76 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Function to calculate total download size
+calculate_download_size() {
+    local total_size=0
+    local packages=("tsu" "python" "git" "wget" "curl" "wpa-supplicant" "pixiewps" "iw" "openssl")
+    local packages_to_install=()
+    
+    echo -e "${YELLOW}[•] Measuring package sizes...${NC}"
+    
+    # First pass: collect packages that need to be installed
+    for package in "${packages[@]}"; do
+        if pkg list-installed 2>/dev/null | grep -q "^${package}/"; then
+            echo -e "${GREEN}  ✓ $package (already installed)${NC}"
+        else
+            packages_to_install+=("$package")
+        fi
+    done
+    
+    # Second pass: get actual sizes for packages to install
+    if [ ${#packages_to_install[@]} -gt 0 ]; then
+        echo -e "${YELLOW}[•] Querying package repository...${NC}"
+        for package in "${packages_to_install[@]}"; do
+            # Method 1: Try apt-cache (most reliable)
+            local size=$(apt-cache show "$package" 2>/dev/null | grep "^Size:" | awk '{print $2}')
+            
+            if [ -z "$size" ] || [ "$size" = "0" ]; then
+                # Method 2: Try pkg show for Termux packages
+                size=$(pkg show "$package" 2>/dev/null | grep "Size:" | awk '{print $2}')
+            fi
+            
+            if [ -n "$size" ] && [ "$size" != "0" ]; then
+                total_size=$((total_size + size))
+                echo -e "${BLUE}  ↓ $package: $(($size / 1024)) KB${NC}"
+            fi
+        done
+    fi
+    
+    # Convert bytes to human readable format
+    if [ $total_size -gt 0 ]; then
+        if [ $total_size -ge 1048576 ]; then
+            echo "$((total_size / 1048576)) MB"
+        elif [ $total_size -ge 1024 ]; then
+            echo "$((total_size / 1024)) KB"
+        else
+            echo "$total_size B"
+        fi
+    else
+        echo "0 B"
+    fi
+}
+
+# Function to show download confirmation
+show_download_confirmation() {
+    local download_size=$1
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}📊 Download Size Estimate:${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}Total packages size: $download_size${NC}"
+    echo ""
+    echo -e "${YELLOW}This will download and install:${NC}"
+    echo "  • Core tools (python, git, wget, curl)"
+    echo "  • WiFi tools (wpa-supplicant, pixiewps, iw)"
+    echo "  • Security tools (openssl)"
+    echo "  • Python dependencies (wcwidth)"
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}Press ENTER to continue installation or CTRL+C to cancel${NC}"
+    read -r
+}
+
 # Banner
 echo -e "${BLUE}"
 echo "╔═══════════════════════════════════════╗"
@@ -39,6 +109,10 @@ else
     echo -e "${RED}[✗] Root access denied. Please grant root permissions.${NC}"
     exit 1
 fi
+
+# Show download size estimate before proceeding
+ESTIMATED_SIZE=$(calculate_download_size)
+show_download_confirmation "$ESTIMATED_SIZE"
 
 # Update packages
 echo -e "${YELLOW}[•] Updating package lists...${NC}"
