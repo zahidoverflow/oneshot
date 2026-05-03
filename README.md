@@ -317,7 +317,6 @@ Please include:
 
 ## 📚 Additional Resources
 
-- **Installer Guide:** [INSTALLER-README.md](INSTALLER-README.md)
 - **Original Project:** [drygdryg/OneShot](https://github.com/drygdryg/OneShot)
 - **Pixiewps:** [wiire-a/pixiewps](https://github.com/wiire-a/pixiewps)
 

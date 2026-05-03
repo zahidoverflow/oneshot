@@ -14,7 +14,6 @@ WiFi WPS penetration testing tool (Python 3.6+). Performs **Pixie Dust** (offlin
 | `oneshot.py` | Single-file main application (~1505 lines) |
 | `install.sh` | Termux one-liner installer (Bash, ~290 lines) |
 | `vulnwsc.txt` | External vulnerable device list (fallback to embedded DB) |
-| `INSTALLER-README.md` | Detailed installer documentation |
 | `README.md` | Full project documentation |
 | `.flake8` | Linting config |
 
