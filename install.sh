@@ -183,6 +183,12 @@ fi
 # Make script executable
 chmod +x "$ONESHOT_SCRIPT"
 
+# Test wireless interface
+echo -e "${YELLOW}[•] Detecting wireless interface${NC}"
+WLAN_INTERFACE=$(su -c "iw dev" 2>/dev/null | awk '/Interface/ {print $2; exit}')
+[ -z "$WLAN_INTERFACE" ] && WLAN_INTERFACE="wlan0"
+echo -e "${GREEN}[✓] Found interface: $WLAN_INTERFACE${NC}"
+
 # Create convenience wrapper script for Termux
 echo -e "${YELLOW}[•] Creating launcher scripts${NC}"
 
@@ -192,10 +198,16 @@ ACTUAL_HOME=$(eval echo ~${SUDO_USER:-$USER})
 
 cat > "$PREFIX/bin/oneshot" << WRAPPER
 #!/data/data/com.termux/files/usr/bin/bash
-# Use the actual installation directory, not root's home
+# OneShot Launcher Wrapper
 SCRIPT_DIR="$INSTALL_DIR"
 if [ -f "\$SCRIPT_DIR/oneshot.py" ]; then
-    sudo python3 "\$SCRIPT_DIR/oneshot.py" "\$@"
+    if [ \$# -eq 0 ]; then
+        # Default action: Scan and Attack with Pixie Dust
+        sudo python3 "\$SCRIPT_DIR/oneshot.py" -i $WLAN_INTERFACE -K
+    else
+        # Pass through all arguments
+        sudo python3 "\$SCRIPT_DIR/oneshot.py" "\$@"
+    fi
 else
     echo "Error: oneshot.py not found in \$SCRIPT_DIR"
     exit 1
@@ -203,12 +215,6 @@ fi
 WRAPPER
 
 chmod +x "$PREFIX/bin/oneshot"
-
-# Test wireless interface
-echo -e "${YELLOW}[•] Detecting wireless interface${NC}"
-WLAN_INTERFACE=$(su -c "iw dev" 2>/dev/null | awk '/Interface/ {print $2; exit}')
-[ -z "$WLAN_INTERFACE" ] && WLAN_INTERFACE="wlan0"
-echo -e "${GREEN}[✓] Found interface: $WLAN_INTERFACE${NC}"
 
 # Installation complete
 echo -e "${GREEN}"
