@@ -223,21 +223,18 @@ echo ""
 echo -e "${YELLOW}Get help:${NC}"
 echo -e "   ${GREEN}sudo oneshot -h${NC}"
 echo ""
-if [ -f "/data/adb/bin/oneshot" ]; then
-echo -e "${GREEN}[✓] Global access enabled - run 'oneshot' from any terminal!${NC}"
-echo ""
-fi
+# Note: system-wide installation disabled for safety (no writes to /data/adb)
+# Global access messaging removed to avoid suggesting system installs
+
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${YELLOW}Installation Path:${NC} $INSTALL_DIR"
 echo -e "${YELLOW}WiFi Interface:${NC} $WLAN_INTERFACE"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo ""
-# Build a box line that matches the warning text length so borders align
-BOX_MSG="  WARNING: Only use on networks you own or have permission to test!  "
-BOX_WIDTH=${#BOX_MSG}
-BOX_BORDER=$(printf '%*s' "$BOX_WIDTH" '' | tr ' ' '━')
-echo -e "${RED}┏${BOX_BORDER}┓"
-echo -e "${RED}┃${BOX_MSG}┃"
-echo -e "${RED}┗${BOX_BORDER}┛${NC}"
-echo ""
+# Warning
+echo -e "${GREEN}"
+echo "╔═══════════════════════════════════════════╗"
+echo "║ WARNING: Only use on authorized networks! ║"
+echo "╚═══════════════════════════════════════════╝"
+echo -e "${NC}"
