@@ -1,4 +1,4 @@
-# 🎯 OneShot
+# OneShot 🎯
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Linux-green.svg)](https://github.com/zahidoverflow/oneshot)
