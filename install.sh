@@ -206,7 +206,8 @@ chmod +x "$PREFIX/bin/oneshot"
 
 # Test wireless interface
 echo -e "${YELLOW}[•] Detecting wireless interface${NC}"
-WLAN_INTERFACE=$(su -c "iw dev" 2>/dev/null | grep -oP 'Interface \K\w+' | head -1 || echo "wlan0")
+WLAN_INTERFACE=$(su -c "iw dev" 2>/dev/null | awk '/Interface/ {print $2; exit}')
+[ -z "$WLAN_INTERFACE" ] && WLAN_INTERFACE="wlan0"
 echo -e "${GREEN}[✓] Found interface: $WLAN_INTERFACE${NC}"
 
 # Installation complete
