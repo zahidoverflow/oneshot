@@ -84,8 +84,8 @@ show_download_confirmation() {
 # Banner
 echo -e "${BLUE}"
 echo "╔═══════════════════════════════════════╗"
-echo "║     OneShot Termux Installer v1.0    ║"
-echo "║   WiFi WPS Penetration Testing Tool  ║"
+echo "║     OneShot Termux Installer v1.0     ║"
+echo "║   WiFi WPS Penetration Testing Tool   ║"
 echo "╚═══════════════════════════════════════╝"
 echo -e "${NC}"
 
