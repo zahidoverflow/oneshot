@@ -4,7 +4,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Linux-green.svg)](https://github.com/zahidoverflow/oneshot)
 [![Python](https://img.shields.io/badge/Python-3.6%2B-blue.svg)](https://www.python.org/)
 
-**OneShot** is a powerful WiFi WPS penetration testing tool that performs [Pixie Dust attacks](https://forums.kali.org/showthread.php?24286-WPS-Pixie-Dust-Attack-Offline-WPS-Attack) without requiring monitor mode. Designed for rooted Android devices running Termux and Linux systems.
+**OneShot** is a powerful WiFi WPS penetration testing tool that performs [Pixie Dust attacks](https://forums.kali.org/showthread.php?24286-WPS-Pixie-Dust-Attack-Offline-WPS-Attack) without requiring monitor mode. Designed for rooted Android devices running Termux & Linux systems.
 
 ---
 
@@ -18,17 +18,17 @@ Install OneShot with a single command on your rooted Android device:
 curl -fsSL https://zahidoverflow.github.io/oneshot/install.sh | bash
 ```
 
-### Usage
+### Run
 
 ```bash
-# Auto-scan and attack with Pixie Dust
-sudo oneshot -i wlan0 --iface-down -K
-
-# Attack specific network
-sudo oneshot -i wlan0 -b AA:BB:CC:DD:EE:FF -K
+# Start
+sudo oneshot
 
 # Get help
 sudo oneshot --help
+
+# Auto-scan and attack with Pixie Dust
+sudo oneshot -i wlan0 --iface-down -K
 ```
 
 ---
