@@ -204,49 +204,6 @@ WRAPPER
 
 chmod +x "$PREFIX/bin/oneshot"
 
-# Install to system-wide location for all root managers (Magisk/KernelSU/APatch)
-if [ -d "/data/adb" ]; then
-    echo -e "${YELLOW}[•] Installing to system-wide location${NC}"
-    su -c "mkdir -p /data/adb/bin" 2>/dev/null || true
-    
-    # Create system-wide wrapper
-    cat > /tmp/oneshot_system << 'SYSWRAPPER'
-#!/system/bin/sh
-SCRIPT_PATH="/data/data/com.termux/files/home/oneshot/oneshot.py"
-PYTHON_PATH="/data/data/com.termux/files/usr/bin/python3"
-
-if [ ! -f "$SCRIPT_PATH" ]; then
-    SCRIPT_PATH="$HOME/oneshot/oneshot.py"
-fi
-
-if [ -f "$SCRIPT_PATH" ]; then
-    if [ -x "$PYTHON_PATH" ]; then
-        "$PYTHON_PATH" "$SCRIPT_PATH" "$@"
-    elif command -v python3 >/dev/null 2>&1; then
-        python3 "$SCRIPT_PATH" "$@"
-    else
-        echo "Error: Python 3 not found"
-        exit 1
-    fi
-else
-    echo "Error: oneshot.py not found"
-    echo "Please run from Termux or ensure the script is installed"
-    exit 1
-fi
-SYSWRAPPER
-    
-    su -c "cp /tmp/oneshot_system /data/adb/bin/oneshot && chmod 755 /data/adb/bin/oneshot" 2>/dev/null
-    rm -f /tmp/oneshot_system
-    
-    if [ -f "/data/adb/bin/oneshot" ]; then
-        echo -e "${GREEN}[✓] Installed to /data/adb/bin/oneshot (global access)${NC}"
-    else
-        echo -e "${YELLOW}[!] Could not install to /data/adb/bin (Termux-only access)${NC}"
-    fi
-else
-    echo -e "${YELLOW}[!] /data/adb not found (non-standard root or Termux-only)${NC}"
-fi
-
 # Test wireless interface
 echo -e "${YELLOW}[•] Detecting wireless interface${NC}"
 WLAN_INTERFACE=$(su -c "iw dev" 2>/dev/null | grep -oP 'Interface \K\w+' | head -1 || echo "wlan0")
@@ -255,7 +212,7 @@ echo -e "${GREEN}[✓] Found interface: $WLAN_INTERFACE${NC}"
 # Installation complete
 echo -e "${GREEN}"
 echo "╔═══════════════════════════════════════╗"
-echo "║   Installation Complete! ✓            ║"
+echo "║   Installation Complete!              ║"
 echo "╚═══════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -263,14 +220,8 @@ echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━�
 echo -e "${GREEN}Quick Start Guide:${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo -e "${YELLOW}1. Run Pixie Dust attack (auto-scan):${NC}"
-echo -e "   ${GREEN}sudo oneshot -i $WLAN_INTERFACE --iface-down -K${NC}"
-echo ""
-echo -e "${YELLOW}2. Attack specific network:${NC}"
-echo -e "   ${GREEN}sudo oneshot -i $WLAN_INTERFACE -b [BSSID] -K${NC}"
-echo ""
-echo -e "${YELLOW}3. Get help:${NC}"
-echo -e "   ${GREEN}sudo oneshot --help${NC}"
+echo -e "${YELLOW}Get help:${NC}"
+echo -e "   ${GREEN}sudo oneshot -h${NC}"
 echo ""
 if [ -f "/data/adb/bin/oneshot" ]; then
 echo -e "${GREEN}[✓] Global access enabled - run 'oneshot' from any terminal!${NC}"
@@ -279,10 +230,14 @@ fi
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${YELLOW}Installation Path:${NC} $INSTALL_DIR"
 echo -e "${YELLOW}WiFi Interface:${NC} $WLAN_INTERFACE"
-if [ -f "/data/adb/bin/oneshot" ]; then
-echo -e "${YELLOW}System Binary:${NC} /data/adb/bin/oneshot"
-fi
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo -e "${RED}⚠ WARNING: Only use on networks you own or have permission to test!${NC}"
+echo ""
+# Build a box line that matches the warning text length so borders align
+BOX_MSG="  WARNING: Only use on networks you own or have permission to test!  "
+BOX_WIDTH=${#BOX_MSG}
+BOX_BORDER=$(printf '%*s' "$BOX_WIDTH" '' | tr ' ' '━')
+echo -e "${RED}┏${BOX_BORDER}┓"
+echo -e "${RED}┃${BOX_MSG}┃"
+echo -e "${RED}┗${BOX_BORDER}┛${NC}"
 echo ""
