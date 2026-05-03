@@ -17,12 +17,12 @@ calculate_download_size() {
     local packages=("tsu" "python" "git" "wget" "curl" "wpa-supplicant" "pixiewps" "iw" "openssl")
     local packages_to_install=()
     
-    echo -e "${YELLOW}[•] Measuring package sizes${NC}"
+    echo -e "${YELLOW}[•] Measuring package sizes${NC}" >&2
     
     # First pass: collect packages that need to be installed
     for package in "${packages[@]}"; do
         if pkg list-installed 2>/dev/null | grep -q "^${package}/"; then
-            echo -e "${GREEN}  ✓ $package (already installed)${NC}"
+            echo -e "${GREEN}  ✓ $package (already installed)${NC}" >&2
         else
             packages_to_install+=("$package")
         fi
@@ -30,7 +30,7 @@ calculate_download_size() {
     
     # Second pass: get actual sizes for packages to install
     if [ ${#packages_to_install[@]} -gt 0 ]; then
-        echo -e "${YELLOW}[•] Querying package repository${NC}"
+        echo -e "${YELLOW}[•] Querying package repository${NC}" >&2
         for package in "${packages_to_install[@]}"; do
             # Method 1: Try apt-cache (most reliable)
             local size=$(apt-cache show "$package" 2>/dev/null | grep "^Size:" | awk '{print $2}')
@@ -42,7 +42,7 @@ calculate_download_size() {
             
             if [ -n "$size" ] && [ "$size" != "0" ]; then
                 total_size=$((total_size + size))
-                echo -e "${BLUE}  ↓ $package: $(($size / 1024)) KB${NC}"
+                echo -e "${BLUE}  ↓ $package: $(($size / 1024)) KB${NC}" >&2
             fi
         done
     fi
@@ -66,18 +66,17 @@ show_download_confirmation() {
     local download_size=$1
     echo ""
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${YELLOW}[•] Download Size Estimate:${NC}"
+    echo -e "${YELLOW}[•] Download Size Estimate: ${GREEN}$download_size${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${GREEN}Total packages size: $download_size${NC}"
     echo ""
-    echo -e "${YELLOW}This will download and install:${NC}"
-    echo "  • Core tools (python, git, wget, curl)"
-    echo "  • WiFi tools (wpa-supplicant, pixiewps, iw)"
-    echo "  • Security tools (openssl)"
-    echo "  • Python dependencies (wcwidth)"
+    echo -e "${YELLOW}The installer will set up:${NC}"
+    echo -e "  ${BLUE}•${NC} Core tools (python, git, wget, curl)"
+    echo -e "  ${BLUE}•${NC} WiFi tools (wpasupplicant, pixiewps, iw)"
+    echo -e "  ${BLUE}•${NC} Security tools (openssl)"
+    echo -e "  ${BLUE}•${NC} Dependencies (wcwidth)"
     echo ""
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${GREEN}Proceeding with installation${NC}"
+    echo -e "${GREEN}Proceeding with installation...${NC}"
 }
 
 # Banner
@@ -218,9 +217,9 @@ chmod +x "$PREFIX/bin/oneshot"
 
 # Installation complete
 echo -e "${GREEN}"
-echo "╔═══════════════════════════════════════╗"
-echo "║   Installation Complete!              ║"
-echo "╚═══════════════════════════════════════╝"
+echo "╔═══════════════════════════════════════════╗"
+echo "║        Installation complete              ║"
+echo "╚═══════════════════════════════════════════╝"
 echo -e "${NC}"
 
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
