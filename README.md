@@ -40,7 +40,6 @@ sudo oneshot --help
 - 💪 **Online Bruteforce** - WPS PIN bruteforce attack
 - 📡 **Smart Scanner** - WiFi network scanner with vulnerability detection
 - 🎯 **Embedded Database** - Built-in vulnerable device database
-- 🌐 **System-Wide Access** - Works from any terminal on rooted Android
 - 📦 **Zero Dependencies** - No external files required
 - ⚡ **Fast Installation** - Smart dependency checking
 
@@ -79,7 +78,6 @@ curl -fsSL https://zahidoverflow.github.io/oneshot/install.sh | bash
 - ✅ Installs Python modules (wcwidth)
 - ✅ Clones OneShot from GitHub
 - ✅ Creates global command wrapper
-- ✅ Installs to `/data/adb/bin` for system-wide access
 - ✅ Detects WiFi interface automatically
 
 #### Manual Installation
@@ -256,7 +254,7 @@ sudo oneshot -i wlan0 --mtk-wifi -K
 
 ```bash
 cd ~/oneshot
-git pull origin master
+git pull origin main
 ```
 
 ### Reinstall
@@ -271,9 +269,6 @@ curl -fsSL https://zahidoverflow.github.io/oneshot/install.sh | bash
 # Remove files
 rm -rf ~/oneshot
 rm $PREFIX/bin/oneshot
-
-# Remove system binary (rooted Android)
-sudo rm /data/adb/bin/oneshot
 ```
 
 ---
@@ -322,7 +317,6 @@ Please include:
 
 ## 📚 Additional Resources
 
-- **Documentation:** [QUICKSTART.md](QUICKSTART.md)
 - **Installer Guide:** [INSTALLER-README.md](INSTALLER-README.md)
 - **Original Project:** [drygdryg/OneShot](https://github.com/drygdryg/OneShot)
 - **Pixiewps:** [wiire-a/pixiewps](https://github.com/wiire-a/pixiewps)
@@ -337,7 +331,7 @@ Please include:
 - **Wiire** - Pixiewps development
 
 ### This Fork
-- **zahidoverflow** - Termux optimization, one-liner installer, system-wide installation
+- **zahidoverflow** - Termux optimization, one-liner installer, automated setup scripts
 
 ### Special Thanks
 - **Monohrom** - Testing and bug reports
@@ -390,7 +384,6 @@ SOFTWARE.
 - **160+ Vulnerable Router Models** in embedded database
 - **30+ WPS PIN Algorithms** supported
 - **Zero External Dependencies** for operation
-- **System-Wide Installation** on rooted Android
 
 ---
 

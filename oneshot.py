@@ -1144,7 +1144,7 @@ def die(msg):
 
 def usage():
     return """
-OneShotPin 0.0.2 (c) 2017 rofl0r, modded by drygdryg
+OneShotPin 1.1.0 (c) 2017 rofl0r, modded by drygdryg
 
 %(prog)s <arguments>
 
@@ -1180,7 +1180,7 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='OneShotPin 0.0.2 (c) 2017 rofl0r, modded by drygdryg',
+        description='OneShotPin 1.1.0 (c) 2017 rofl0r, modded by drygdryg',
         epilog='Example: %(prog)s -i wlan0 -b 00:90:4C:C1:AC:21 -K'
         )
 
