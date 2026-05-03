@@ -162,21 +162,25 @@ if [ -d "$INSTALL_DIR" ]; then
     rm -rf "$INSTALL_DIR"
 fi
 
-# Clone OneShot repository
+# Download OneShot script (minimal data usage)
 echo -e "${YELLOW}[•] Downloading OneShot from GitHub${NC}"
-git clone --depth 1 --branch master https://github.com/zahidoverflow/oneshot.git "$INSTALL_DIR"
-
-# Verify oneshot.py exists
-echo -e "${YELLOW}[•] Verifying installation${NC}"
+mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
-ONESHOT_SCRIPT=""
-if [ -f "$INSTALL_DIR/oneshot.py" ]; then
-    ONESHOT_SCRIPT="$INSTALL_DIR/oneshot.py"
-    echo -e "${GREEN}[✓] OneShot script found${NC}"
+# Download only the oneshot.py file via raw GitHub URL (much smaller than git clone)
+if curl -fsSL "https://raw.githubusercontent.com/zahidoverflow/oneshot/main/oneshot.py" -o oneshot.py; then
+    echo -e "${GREEN}[✓] OneShot script downloaded${NC}"
 else
-    echo -e "${RED}[✗] Error: oneshot.py not found in repository${NC}"
-    echo -e "${RED}Please check your repository structure${NC}"
+    echo -e "${RED}[✗] Error: Failed to download oneshot.py${NC}"
+    exit 1
+fi
+
+# Verify oneshot.py exists and is not empty
+if [ -s "$INSTALL_DIR/oneshot.py" ]; then
+    ONESHOT_SCRIPT="$INSTALL_DIR/oneshot.py"
+    echo -e "${GREEN}[✓] OneShot script verified${NC}"
+else
+    echo -e "${RED}[✗] Error: oneshot.py is empty or missing${NC}"
     exit 1
 fi
 
