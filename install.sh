@@ -102,74 +102,98 @@ install_packages() {
         pkg update -y || true
         pkg install -y root-repo 2>/dev/null || true
         local termux_pkgs=("tsu" "python" "git" "wget" "curl" "wpa-supplicant" "pixiewps" "iw" "openssl")
+        local to_install=()
         for pkg in "${termux_pkgs[@]}"; do
             if pkg list-installed 2>/dev/null | grep -q "^${pkg}/"; then
                 echo -e "${GREEN}  ✓ $pkg already installed${NC}"
             else
-                echo -e "${BLUE}  → Installing $pkg${NC}"
-                pkg install -y "$pkg" 2>&1 | grep -v "Warning" || true
+                to_install+=("$pkg")
             fi
         done
+        if [ ${#to_install[@]} -gt 0 ]; then
+            echo -e "${BLUE}  → Installing missing packages: ${to_install[*]}${NC}"
+            pkg install -y "${to_install[@]}" 2>&1 | grep -v "Warning" || true
+        fi
     elif command -v apt-get &>/dev/null; then
         echo -e "${BLUE}→ Package Manager: apt (Debian/Ubuntu/Kali/Parrot/Mint)${NC}"
-        run_root apt-get update -y || true
-        local apt_pkgs=("python3" "python3-pip" "git" "wget" "curl" "wpasupplicant" "pixiewps" "iw" "openssl")
+        run_root apt-get -o Dpkg::Lock::Timeout=60 update -y || true
+        local apt_pkgs=("python3" "python3-pip" "python3-wcwidth" "git" "wget" "curl" "wpasupplicant" "pixiewps" "iw" "openssl")
+        local to_install=()
         for pkg in "${apt_pkgs[@]}"; do
             if dpkg -l "$pkg" 2>/dev/null | grep -q "^ii"; then
                 echo -e "${GREEN}  ✓ $pkg already installed${NC}"
             else
-                echo -e "${BLUE}  → Installing $pkg${NC}"
-                run_root apt-get install -y "$pkg" || echo -e "${YELLOW}  ! Could not install $pkg via apt${NC}"
+                to_install+=("$pkg")
             fi
         done
+        if [ ${#to_install[@]} -gt 0 ]; then
+            echo -e "${BLUE}  → Installing missing packages: ${to_install[*]}${NC}"
+            run_root apt-get -o Dpkg::Lock::Timeout=60 install -y "${to_install[@]}" || echo -e "${YELLOW}  ! Package installation completed with warnings${NC}"
+        fi
     elif command -v pacman &>/dev/null; then
         echo -e "${BLUE}→ Package Manager: pacman (Arch/Manjaro)${NC}"
         run_root pacman -Sy --noconfirm || true
-        local pacman_pkgs=("python" "python-pip" "git" "wget" "curl" "wpa_supplicant" "pixiewps" "iw" "openssl")
+        local pacman_pkgs=("python" "python-pip" "python-wcwidth" "git" "wget" "curl" "wpa_supplicant" "pixiewps" "iw" "openssl")
+        local to_install=()
         for pkg in "${pacman_pkgs[@]}"; do
             if pacman -Q "$pkg" &>/dev/null; then
                 echo -e "${GREEN}  ✓ $pkg already installed${NC}"
             else
-                echo -e "${BLUE}  → Installing $pkg${NC}"
-                run_root pacman -S --noconfirm "$pkg" || echo -e "${YELLOW}  ! Could not install $pkg via pacman${NC}"
+                to_install+=("$pkg")
             fi
         done
+        if [ ${#to_install[@]} -gt 0 ]; then
+            echo -e "${BLUE}  → Installing missing packages: ${to_install[*]}${NC}"
+            run_root pacman -S --noconfirm "${to_install[@]}" || echo -e "${YELLOW}  ! Package installation completed with warnings${NC}"
+        fi
     elif command -v dnf &>/dev/null || command -v yum &>/dev/null; then
         local pm="dnf"
         command -v dnf &>/dev/null || pm="yum"
         echo -e "${BLUE}→ Package Manager: $pm (Fedora/RHEL/CentOS)${NC}"
-        local redhat_pkgs=("python3" "python3-pip" "git" "wget" "curl" "wpa_supplicant" "pixiewps" "iw" "openssl")
+        local redhat_pkgs=("python3" "python3-pip" "python3-wcwidth" "git" "wget" "curl" "wpa_supplicant" "pixiewps" "iw" "openssl")
+        local to_install=()
         for pkg in "${redhat_pkgs[@]}"; do
             if rpm -q "$pkg" &>/dev/null; then
                 echo -e "${GREEN}  ✓ $pkg already installed${NC}"
             else
-                echo -e "${BLUE}  → Installing $pkg${NC}"
-                run_root $pm install -y "$pkg" || echo -e "${YELLOW}  ! Could not install $pkg via $pm${NC}"
+                to_install+=("$pkg")
             fi
         done
+        if [ ${#to_install[@]} -gt 0 ]; then
+            echo -e "${BLUE}  → Installing missing packages: ${to_install[*]}${NC}"
+            run_root $pm install -y "${to_install[@]}" || echo -e "${YELLOW}  ! Package installation completed with warnings${NC}"
+        fi
     elif command -v apk &>/dev/null; then
         echo -e "${BLUE}→ Package Manager: apk (Alpine)${NC}"
         run_root apk update || true
-        local alpine_pkgs=("python3" "py3-pip" "git" "wget" "curl" "wpa_supplicant" "pixiewps" "iw" "openssl")
+        local alpine_pkgs=("python3" "py3-pip" "py3-wcwidth" "git" "wget" "curl" "wpa_supplicant" "pixiewps" "iw" "openssl")
+        local to_install=()
         for pkg in "${alpine_pkgs[@]}"; do
             if apk info -e "$pkg" &>/dev/null; then
                 echo -e "${GREEN}  ✓ $pkg already installed${NC}"
             else
-                echo -e "${BLUE}  → Installing $pkg${NC}"
-                run_root apk add "$pkg" || echo -e "${YELLOW}  ! Could not install $pkg via apk${NC}"
+                to_install+=("$pkg")
             fi
         done
+        if [ ${#to_install[@]} -gt 0 ]; then
+            echo -e "${BLUE}  → Installing missing packages: ${to_install[*]}${NC}"
+            run_root apk add "${to_install[@]}" || echo -e "${YELLOW}  ! Package installation completed with warnings${NC}"
+        fi
     elif command -v zypper &>/dev/null; then
         echo -e "${BLUE}→ Package Manager: zypper (openSUSE)${NC}"
-        local suse_pkgs=("python3" "python3-pip" "git" "wget" "curl" "wpa_supplicant" "pixiewps" "iw" "openssl")
+        local suse_pkgs=("python3" "python3-pip" "python3-wcwidth" "git" "wget" "curl" "wpa_supplicant" "pixiewps" "iw" "openssl")
+        local to_install=()
         for pkg in "${suse_pkgs[@]}"; do
             if rpm -q "$pkg" &>/dev/null; then
                 echo -e "${GREEN}  ✓ $pkg already installed${NC}"
             else
-                echo -e "${BLUE}  → Installing $pkg${NC}"
-                run_root zypper install -y "$pkg" || echo -e "${YELLOW}  ! Could not install $pkg via zypper${NC}"
+                to_install+=("$pkg")
             fi
         done
+        if [ ${#to_install[@]} -gt 0 ]; then
+            echo -e "${BLUE}  → Installing missing packages: ${to_install[*]}${NC}"
+            run_root zypper install -y "${to_install[@]}" || echo -e "${YELLOW}  ! Package installation completed with warnings${NC}"
+        fi
     else
         echo -e "${YELLOW}  ! Unknown package manager. Skipping automatic system package installation.${NC}"
         echo -e "${YELLOW}  ! Please ensure python3, git, wpa_supplicant, pixiewps, and iw are installed.${NC}"
@@ -178,17 +202,18 @@ install_packages() {
 
 install_packages
 
-# Python dependencies
-echo -e "${YELLOW}[•] Installing Python dependencies${NC}"
-if python3 -c "import wcwidth" 2>/dev/null; then
-    echo -e "${GREEN}  ✓ wcwidth already installed${NC}"
+# Python dependencies verification for root / system environment
+echo -e "${YELLOW}[•] Verifying Python dependencies (system-wide & root)${NC}"
+if run_root python3 -c "import wcwidth" 2>/dev/null; then
+    echo -e "${GREEN}  ✓ wcwidth is installed and accessible to root${NC}"
 else
-    echo -e "${BLUE}  → Installing wcwidth${NC}"
+    echo -e "${BLUE}  → Installing wcwidth system-wide for root Python environment${NC}"
+    run_root python3 -m pip install wcwidth --break-system-packages 2>/dev/null || \
+    run_root pip3 install wcwidth 2>/dev/null || \
+    run_root pip3 install --break-system-packages wcwidth 2>/dev/null || \
     pip3 install wcwidth 2>/dev/null || \
     pip install wcwidth 2>/dev/null || \
-    pip3 install --break-system-packages wcwidth 2>/dev/null || \
-    run_root pip3 install --break-system-packages wcwidth 2>/dev/null || \
-    echo -e "${YELLOW}  ! Could not install wcwidth automatically. Please run 'pip install wcwidth' manually.${NC}"
+    echo -e "${YELLOW}  ! Could not install wcwidth automatically. Please run 'sudo pip install wcwidth' manually.${NC}"
 fi
 
 # Check pixiewps availability
