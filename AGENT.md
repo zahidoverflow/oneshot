@@ -104,13 +104,13 @@ Runs `iw dev <iface> scan`, parses output with regex matchers into network dicts
 ---
 
 ## Installer (`install.sh`)
-- **Target:** Termux on rooted Android only (checks `/data/data/com.termux`)
-- **Root check:** Tests `su -c "exit"`
-- **Packages:** `tsu python git wget curl wpa-supplicant pixiewps iw openssl`
-- **Python dep:** `wcwidth` via pip
-- **Install path:** `~/oneshot/` (cloned from GitHub main)
-- **Termux wrapper:** `$PREFIX/bin/oneshot` → `sudo python3 ~/oneshot/oneshot.py "$@"`
-- **System-wide installation:** Disabled for safety (no `/data/adb/bin` writes)
+- **Target:** Universal Linux installer (supports Termux, Debian/Ubuntu, Arch, Fedora/RHEL, Alpine, openSUSE, Void, generic Linux)
+- **Root/Privilege check:** Checks `sudo`, `su`, or `id -u == 0`
+- **Package Manager Detection:** Auto-detects `apt-get`, `pacman`, `dnf`/`yum`, `apk`, `zypper`, or `pkg` (Termux)
+- **Python dep:** `wcwidth` via pip/pip3
+- **Install path:** Local repo directory or `~/oneshot/`
+- **Launcher Wrapper:** Installed to `/usr/local/bin/oneshot` or `$PREFIX/bin/oneshot` or `~/.local/bin/oneshot`
+
 
 ---
 
