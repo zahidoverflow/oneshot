@@ -255,16 +255,50 @@ fi
 echo -e "${YELLOW}[•] Detecting wireless interface${NC}"
 detect_interface() {
     local iface=""
+    local iw_out=""
+    local iw_bin=""
+
     if command -v iw &>/dev/null; then
-        iface=$(iw dev 2>/dev/null | awk '/Interface/ {print $2; exit}')
-        [ -z "$iface" ] && iface=$(run_root iw dev 2>/dev/null | awk '/Interface/ {print $2; exit}')
+        iw_bin=$(command -v iw)
+        iw_out=$("$iw_bin" dev 2>/dev/null || true)
+        [ -z "$iw_out" ] && iw_out=$(run_root "$iw_bin" dev 2>/dev/null || true)
     fi
+
+    if [ -n "$iw_out" ]; then
+        iface=$(printf '%s\n' "$iw_out" | awk '
+            /^[[:space:]]*Interface[[:space:]]+/ {
+                if (cur != "" && !excl && (ctype == "managed" || ctype == "")) {
+                    if (cur == "wlan0") { print cur; found = 1; exit }
+                    if (best == "" || (cur ~ /^wlan/ && best !~ /^wlan/) || (cur ~ /^wlan/ && best ~ /^wlan/ && cur < best)) best = cur
+                }
+                cur = $2
+                ctype = ""
+                excl = (cur ~ /^(p2p|ap[0-9]|swlan|softap|aware|nan|mon[0-9])/)
+                next
+            }
+            /^[[:space:]]*type[[:space:]]+/ && cur != "" {
+                ctype = tolower($2)
+            }
+            END {
+                if (!found) {
+                    if (cur != "" && !excl && (ctype == "managed" || ctype == "")) {
+                        if (cur == "wlan0") best = cur
+                        else if (best == "" || (cur ~ /^wlan/ && best !~ /^wlan/) || (cur ~ /^wlan/ && best ~ /^wlan/ && cur < best)) best = cur
+                    }
+                    if (best != "") print best
+                }
+            }
+        ')
+    fi
+
     if [ -z "$iface" ] && [ -d "/sys/class/net" ]; then
-        iface=$(ls /sys/class/net 2>/dev/null | grep -E '^(wlan|wlp|wlx)' | head -n 1)
+        iface=$(ls /sys/class/net 2>/dev/null | grep -E '^(wlan|wlp|wlx)' | grep -Ev '^(p2p|ap[0-9]|swlan|softap|aware|nan|mon[0-9])' | sort -V | head -n 1)
     fi
+
     if [ -z "$iface" ] && command -v ip &>/dev/null; then
-        iface=$(ip link 2>/dev/null | awk -F': ' '/wlan|wlp|wlx/ {print $2; exit}')
+        iface=$(ip link 2>/dev/null | awk -F': ' '/^[0-9]+: (wlan|wlp|wlx)/ {print $2}' | cut -d'@' -f1 | grep -Ev '^(p2p|ap[0-9]|swlan|softap|aware|nan|mon[0-9])' | sort -V | head -n 1)
     fi
+
     [ -z "$iface" ] && iface="wlan0"
     echo "$iface"
 }
@@ -305,8 +339,8 @@ if [ -f "\$SCRIPT_DIR/oneshot.py" ]; then
     fi
 
     if [ \$# -eq 0 ]; then
-        # Default action: Scan and Attack with Pixie Dust
-        \$EXEC_CMD "\$SCRIPT_DIR/oneshot.py" -i "$WLAN_INTERFACE" -K
+        # Default action: Auto-detect interface at runtime and run Pixie Dust scan
+        \$EXEC_CMD "\$SCRIPT_DIR/oneshot.py" -K
     else
         # Pass through all arguments
         \$EXEC_CMD "\$SCRIPT_DIR/oneshot.py" "\$@"

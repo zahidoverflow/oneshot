@@ -1124,6 +1124,85 @@ class WiFiScanner:
                 print('Invalid number')
 
 
+_EXCLUDED_IFACE_RE = re.compile(
+    r'^(p2p|ap[0-9]|swlan|softap|aware|nan|mon[0-9]|rmnet|r_rmnet|dummy|bond|sit|ip6?_|ip6tnl|tun|tap|lo|veth|docker|br-)'
+)
+
+
+def _natural_iface_key(name):
+    return [int(part) if part.isdigit() else part for part in re.split(r'(\d+)', name)]
+
+
+def detect_default_interface():
+    """Auto-detect the primary managed Wi-Fi interface across Android and Linux."""
+    iw_bin = shutil.which('iw') or 'iw'
+    candidates = []
+    try:
+        res = subprocess.run(
+            [iw_bin, 'dev'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            encoding='utf-8',
+            errors='replace',
+            timeout=5,
+        )
+        if res.returncode == 0 and res.stdout:
+            current = None
+            for raw_line in res.stdout.splitlines():
+                line = raw_line.strip()
+                if line.startswith('Interface '):
+                    if current:
+                        candidates.append(current)
+                    current = {'name': line.split(None, 1)[1].strip(), 'type': '', 'has_ssid': False}
+                elif current:
+                    if line.startswith('type '):
+                        current['type'] = line.split(None, 1)[1].strip().lower()
+                    elif line.startswith('ssid '):
+                        current['has_ssid'] = True
+            if current:
+                candidates.append(current)
+    except Exception:
+        pass
+
+    managed = [
+        c for c in candidates
+        if not _EXCLUDED_IFACE_RE.match(c['name'])
+        and (c['type'] == 'managed' or c['type'] == '')
+    ]
+    if managed:
+        managed.sort(key=lambda c: (
+            0 if c['name'] == 'wlan0' else 1,
+            0 if c['name'].startswith('wlan') else 1,
+            0 if c['has_ssid'] else 1,
+            _natural_iface_key(c['name']),
+        ))
+        return managed[0]['name']
+
+    sys_net = Path('/sys/class/net')
+    if sys_net.is_dir():
+        sys_candidates = []
+        try:
+            for entry in sys_net.iterdir():
+                name = entry.name
+                if _EXCLUDED_IFACE_RE.match(name):
+                    continue
+                is_wifi = (entry / 'wireless').is_dir() or (entry / 'phy80211').is_dir()
+                if is_wifi or re.match(r'^(wlan|wlp|wlx)', name):
+                    sys_candidates.append((name, is_wifi))
+        except OSError:
+            pass
+        if sys_candidates:
+            sys_candidates.sort(key=lambda item: (
+                0 if item[0] == 'wlan0' else 1,
+                0 if item[1] else 1,
+                0 if item[0].startswith('wlan') else 1,
+                _natural_iface_key(item[0]),
+            ))
+            return sys_candidates[0][0]
+
+    return 'wlan0'
+
+
 def ifaceUp(iface, down=False):
     if down:
         action = 'down'
@@ -1148,10 +1227,8 @@ OneShotPin 1.1.0 (c) 2017 rofl0r, modded by drygdryg
 
 %(prog)s <arguments>
 
-Required arguments:
-    -i, --interface=<wlan0>  : Name of the interface to use
-
 Optional arguments:
+    -i, --interface=<wlan0>  : Name of the interface to use (auto-detected if omitted)
     -b, --bssid=<mac>        : BSSID of the target AP
     -p, --pin=<wps pin>      : Use the specified pin (arbitrary string or 4/8 digit pin)
     -K, --pixie-dust         : Run Pixie Dust attack
@@ -1187,8 +1264,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '-i', '--interface',
         type=str,
-        required=True,
-        help='Name of the interface to use'
+        required=False,
+        default=None,
+        help='Name of the interface to use (auto-detected if omitted)'
         )
     parser.add_argument(
         '-b', '--bssid',
@@ -1283,6 +1361,10 @@ if __name__ == '__main__':
                 "/dev/wmtWifi does not exist or it is not a character device")
         wmtWifi_device.chmod(0o644)
         wmtWifi_device.write_text("1")
+
+    if not args.interface:
+        args.interface = detect_default_interface()
+        print('[*] Auto-detected interface: {}'.format(args.interface))
 
     if not ifaceUp(args.interface):
         die('Unable to up interface "{}"'.format(args.interface))
