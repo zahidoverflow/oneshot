@@ -937,9 +937,14 @@ class WiFiScanner:
             networks[-1]['Device name'] = codecs.decode(d, 'unicode-escape').encode('latin1').decode('utf-8', errors='replace')
 
         cmd = 'iw dev {} scan'.format(self.interface)
-        proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT, encoding='utf-8', errors='replace')
-        lines = proc.stdout.splitlines()
+        for attempt in range(5):
+            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE,
+                                  stderr=subprocess.STDOUT, encoding='utf-8', errors='replace')
+            lines = proc.stdout.splitlines()
+            if any('Device or resource busy (-16)' in line for line in lines) and attempt < 4:
+                time.sleep(1.0)
+                continue
+            break
         networks = []
         matchers = {
             re.compile(r'BSS (\S+)( )?\(on \w+\)'): handle_network,
@@ -1348,6 +1353,8 @@ if __name__ == '__main__':
         )
 
     args = parser.parse_args()
+    if len(sys.argv) == 1:
+        args.pixie_dust = True
 
     if sys.hexversion < 0x03060F0:
         die("The program requires Python 3.6 and above")

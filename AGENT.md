@@ -77,7 +77,7 @@ Runs `iw dev <iface> scan`, parses output with regex matchers into network dicts
 
 | Flag | Type | Description |
 |---|---|---|
-| `-i / --interface` | str (required) | WiFi interface |
+| `-i / --interface` | str (optional) | WiFi interface (auto-detected via `detect_default_interface()` if omitted) |
 | `-b / --bssid` | str | Target AP MAC |
 | `-p / --pin` | str | Specific PIN to try |
 | `-K / --pixie-dust` | bool | Pixie Dust attack mode |

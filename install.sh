@@ -233,6 +233,7 @@ else
     if [ -d "$INSTALL_DIR" ]; then
         echo -e "${YELLOW}[•] Updating existing installation in $INSTALL_DIR${NC}"
         if [ -d "$INSTALL_DIR/.git" ]; then
+            (cd "$INSTALL_DIR" && git fetch --depth 1 origin main && git reset --hard origin/main) || \
             (cd "$INSTALL_DIR" && git pull) || true
         fi
     else
@@ -320,9 +321,14 @@ else
 fi
 
 LAUNCHER="$BIN_DIR/oneshot"
+if [ "$IS_TERMUX" = true ]; then
+    LAUNCHER_SHEBANG="#!${PREFIX:-/data/data/com.termux/files/usr}/bin/env bash"
+else
+    LAUNCHER_SHEBANG="#!/usr/bin/env bash"
+fi
 
 LAUNCHER_CONTENT=$(cat << WRAPPER
-#!/usr/bin/env bash
+$LAUNCHER_SHEBANG
 # OneShot Launcher Wrapper
 SCRIPT_DIR="$INSTALL_DIR"
 if [ -f "\$SCRIPT_DIR/oneshot.py" ]; then
@@ -370,14 +376,14 @@ echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━�
 echo -e "${GREEN}Quick Start Guide:${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo -e "${YELLOW}1. Run Pixie Dust scan:${NC}"
-echo -e "   ${GREEN}sudo oneshot -i $WLAN_INTERFACE -K${NC}"
+echo -e "${YELLOW}1. Instant scan & Pixie Dust attack (auto-detects interface):${NC}"
+echo -e "   ${GREEN}oneshot${NC}"
 echo ""
 echo -e "${YELLOW}2. Attack specific BSSID:${NC}"
-echo -e "   ${GREEN}sudo oneshot -i $WLAN_INTERFACE -b [MAC] -K${NC}"
+echo -e "   ${GREEN}oneshot -i $WLAN_INTERFACE -b [MAC] -K${NC}"
 echo ""
 echo -e "${YELLOW}3. Get help:${NC}"
-echo -e "   ${GREEN}sudo oneshot -h${NC}"
+echo -e "   ${GREEN}oneshot -h${NC}"
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${YELLOW}Installation Path:${NC} $INSTALL_DIR"

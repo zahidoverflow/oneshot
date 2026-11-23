@@ -21,13 +21,13 @@ curl -fsSL https://zahidoverflow.github.io/oneshot/install.sh | bash
 ### Run
 
 ```bash
-# Start
-sudo oneshot
+# Instant auto-scan and Pixie Dust attack (auto-detects default Wi-Fi interface)
+oneshot
 
 # Get help
-sudo oneshot --help
+oneshot --help
 
-# Auto-scan and attack with Pixie Dust
+# Explicit interface + shutdown interface on exit
 sudo oneshot -i wlan0 --iface-down -K
 ```
 
@@ -160,10 +160,8 @@ sudo oneshot -i wlan0 -K -l
 ### Command-Line Options
 
 ```
-Required:
-  -i, --interface <wlan0>     : WiFi interface to use
-
 Optional:
+  -i, --interface <wlan0>     : WiFi interface to use (auto-detected if omitted)
   -b, --bssid <mac>           : Target AP BSSID
   -p, --pin <wps pin>         : Use specific PIN (4/8 digits)
   -K, --pixie-dust            : Run Pixie Dust attack
